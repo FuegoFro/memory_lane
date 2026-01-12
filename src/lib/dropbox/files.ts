@@ -1,8 +1,6 @@
 import { getDropboxClient, getDropboxFolder } from './client';
 import type { files } from 'dropbox';
 
-type FileEntry = files.FileMetadataReference | files.FolderMetadataReference | files.DeletedMetadataReference;
-
 export interface DropboxFile {
   path: string;
   name: string;

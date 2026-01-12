@@ -25,7 +25,6 @@ import {
   setSetting,
   getViewerSettings,
   updateViewerSettings,
-  ViewerSettings,
 } from '../index';
 
 describe('settings module', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import * as jose from 'jose'
 

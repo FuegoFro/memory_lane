@@ -1,5 +1,5 @@
 import { listMediaFiles } from '@/lib/dropbox';
-import { getEntryByPath, createEntry, getAllEntries } from './repository';
+import { createEntry, getAllEntries } from './repository';
 
 export interface SyncResult {
   added: number;

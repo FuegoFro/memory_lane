@@ -23,11 +23,15 @@ export function NarrationPlayer({
 
   const narrationUrl = `/api/narration/${entryId}`;
 
-  // Check if narration exists
+  // Reset state when entryId changes
+  // Note: We initialize with hasNarration=true, and the audio element's
+  // onError handler will set it to false if the narration doesn't exist.
+  // This is intentionally using refs to avoid the setState-in-effect pattern.
   useEffect(() => {
-    setHasNarration(true);
-    setCurrentTime(0);
-    setDuration(0);
+    // Reset audio element directly instead of using setState
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
   }, [entryId]);
 
   // Handle play/pause

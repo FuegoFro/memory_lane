@@ -160,7 +160,7 @@ describe('PUT /api/edit/entries/[id]', () => {
 
     const request = createMockRequest('entry-1', { status: 'active' });
     const response = await PUT(request, { params: Promise.resolve({ id: 'entry-1' }) });
-    const body = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(mockGetNextPosition).toHaveBeenCalled();
@@ -185,6 +185,7 @@ describe('PUT /api/edit/entries/[id]', () => {
 
     const request = createMockRequest('entry-1', { status: 'active' });
     const response = await PUT(request, { params: Promise.resolve({ id: 'entry-1' }) });
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(mockGetNextPosition).not.toHaveBeenCalled();
@@ -209,7 +210,7 @@ describe('PUT /api/edit/entries/[id]', () => {
 
     const request = createMockRequest('entry-1', { status: 'staging' });
     const response = await PUT(request, { params: Promise.resolve({ id: 'entry-1' }) });
-    const body = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { disabled: false, position: null });
@@ -233,7 +234,7 @@ describe('PUT /api/edit/entries/[id]', () => {
 
     const request = createMockRequest('entry-1', { status: 'disabled' });
     const response = await PUT(request, { params: Promise.resolve({ id: 'entry-1' }) });
-    const body = await response.json();
+    await response.json();
 
     expect(response.status).toBe(200);
     expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { disabled: true });

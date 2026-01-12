@@ -31,7 +31,7 @@ vi.mock('@/lib/dropbox', () => ({
 
 // Now import the db and sync modules
 import db from '@/lib/db';
-import { syncFromDropbox, type SyncResult } from '../sync';
+import { syncFromDropbox } from '../sync';
 import { createEntry, getAllEntries, getEntryByPath } from '../repository';
 import { listMediaFiles } from '@/lib/dropbox';
 
