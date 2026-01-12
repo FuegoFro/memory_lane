@@ -11,3 +11,5 @@ export {
   deleteEntry,
   getNextPosition,
 } from './repository';
+
+export { syncFromDropbox, type SyncResult } from './sync';

@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/**/__tests__/**/*.test.ts', 'src/__tests__/**/*.test.ts'],
+    fileParallelism: false, // Ensure test files run serially to avoid database singleton conflicts
   },
   resolve: {
     alias: {
