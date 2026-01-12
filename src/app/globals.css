@@ -1,25 +1,32 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 body {
-  @apply bg-gray-900 text-white;
+  background-color: #111827;
+  color: white;
 }
 
 /* Custom range input styling */
 input[type='range'] {
-  @apply h-2 rounded-lg appearance-none cursor-pointer bg-gray-600;
+  height: 0.5rem;
+  border-radius: 0.5rem;
+  appearance: none;
+  cursor: pointer;
+  background-color: #4b5563;
 }
 
 input[type='range']::-webkit-slider-thumb {
-  @apply appearance-none w-4 h-4 rounded-full bg-blue-500;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background-color: #3b82f6;
 }
 
 /* Audio player styling */
 audio {
-  @apply w-full;
+  width: 100%;
 }
 
 audio::-webkit-media-controls-panel {
-  @apply bg-gray-700;
+  background-color: #374151;
 }
