@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus } from '@/types';
 
 interface EntryGridProps {
@@ -9,8 +10,15 @@ interface EntryGridProps {
 }
 
 export function EntryGrid({ initialEntries }: EntryGridProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const validStages = new Set<string>(['active', 'staging', 'disabled', 'all']);
+  const stageParam = searchParams.get('stage');
+  const filter: EntryStatus | 'all' = stageParam && validStages.has(stageParam)
+    ? (stageParam as EntryStatus | 'all')
+    : 'active';
+
   const [entries, setEntries] = useState(initialEntries);
-  const [filter, setFilter] = useState<EntryStatus | 'all'>('active');
   const [thumbnailSize, setThumbnailSize] = useState(200);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
@@ -68,7 +76,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           {filterOptions.map((option) => (
             <button
               key={option.value}
-              onClick={() => setFilter(option.value)}
+              onClick={() => router.replace(`/edit?stage=${option.value}`)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === option.value
                   ? 'bg-blue-600 text-white'
@@ -140,7 +148,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
             return (
               <Link
                 key={entry.id}
-                href={`/edit/${entry.id}`}
+                href={`/edit/${entry.id}?from=${filter}`}
                 className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all"
               >
                 {/* Thumbnail */}

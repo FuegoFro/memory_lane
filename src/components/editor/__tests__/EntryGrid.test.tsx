@@ -148,6 +148,16 @@ describe('EntryGrid', () => {
       expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
     });
 
+    it('falls back to active for invalid stage param', () => {
+      mockSearchParams = new URLSearchParams('stage=garbage');
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      // Should fall back to active
+      expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
+      expect(screen.queryByText('Staging Entry')).not.toBeInTheDocument();
+    });
+
     it('clicking staging filter updates URL and shows staging entries', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
@@ -324,12 +334,9 @@ describe('EntryGrid', () => {
 
   describe('Empty state', () => {
     it('shows empty state when no entries match filter', () => {
+      mockSearchParams = new URLSearchParams('stage=disabled');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
-
-      // There are no entries that match a specific condition
-      // Let's filter to disabled when we only have one disabled entry
-      fireEvent.click(screen.getByRole('button', { name: /disabled/i }));
 
       // We should see the disabled entry
       expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
@@ -350,10 +357,9 @@ describe('EntryGrid', () => {
         },
       ];
 
+      // Set URL to staging filter (no staging entries exist)
+      mockSearchParams = new URLSearchParams('stage=staging');
       render(<EntryGrid initialEntries={activeOnlyEntries} />);
-
-      // Filter to staging (no staging entries exist)
-      fireEvent.click(screen.getByRole('button', { name: /staging/i }));
 
       expect(screen.getByText('No entries in this category')).toBeInTheDocument();
     });
@@ -378,10 +384,9 @@ describe('EntryGrid', () => {
     });
 
     it('shows yellow badge for staging entries', () => {
+      mockSearchParams = new URLSearchParams('stage=staging');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /staging/i }));
 
       const badges = screen.getAllByTestId('status-badge');
       badges.forEach((badge) => {
@@ -390,10 +395,9 @@ describe('EntryGrid', () => {
     });
 
     it('shows gray badge for disabled entries', () => {
+      mockSearchParams = new URLSearchParams('stage=disabled');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /disabled/i }));
 
       const badges = screen.getAllByTestId('status-badge');
       badges.forEach((badge) => {
