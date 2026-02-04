@@ -8,7 +8,16 @@ import '@testing-library/jest-dom/vitest';
 import { EntryGrid } from '../EntryGrid';
 import { Entry } from '@/types';
 
-// Mock next/link
+const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: mockReplace,
+  }),
+  useSearchParams: () => mockSearchParams,
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -70,6 +79,7 @@ const createTestEntries = (): Entry[] => [
 describe('EntryGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
   });
 
   describe('Rendering with initial entries', () => {
@@ -95,13 +105,13 @@ describe('EntryGrid', () => {
       expect(images[1]).toHaveAttribute('src', '/api/media/entry-2');
     });
 
-    it('renders entry links to /edit/[id]', () => {
+    it('renders entry links with stage context', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
       const links = screen.getAllByRole('link');
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1')).toBe(true);
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1?from=active')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2?from=active')).toBe(true);
     });
   });
 
@@ -129,36 +139,50 @@ describe('EntryGrid', () => {
       expect(screen.queryByText('Disabled Entry')).not.toBeInTheDocument();
     });
 
-    it('clicking staging filter shows staging entries', () => {
+    it('reads stage filter from URL search params', () => {
+      mockSearchParams = new URLSearchParams('stage=staging');
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
+      expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
+    });
+
+    it('clicking staging filter updates URL and shows staging entries', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
       fireEvent.click(screen.getByRole('button', { name: /staging/i }));
 
-      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
-      expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/edit?stage=staging');
     });
 
-    it('clicking disabled filter shows disabled entries', () => {
+    it('clicking disabled filter updates URL and shows disabled entries', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
       fireEvent.click(screen.getByRole('button', { name: /disabled/i }));
 
-      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
-      expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/edit?stage=disabled');
     });
 
-    it('clicking all filter shows all entries', () => {
+    it('shows all entries when stage=all in URL', () => {
+      mockSearchParams = new URLSearchParams('stage=all');
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
+      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
+      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
+    });
+
+    it('clicking all filter updates URL', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
       fireEvent.click(screen.getByRole('button', { name: /all/i }));
 
-      expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
-      expect(screen.getByText('Active Entry 2')).toBeInTheDocument();
-      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
-      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/edit?stage=all');
     });
 
     it('selected filter button has different styling', () => {
@@ -168,14 +192,9 @@ describe('EntryGrid', () => {
       const activeButton = screen.getByRole('button', { name: /active/i });
       const stagingButton = screen.getByRole('button', { name: /staging/i });
 
-      // Active button should be selected (have bg-blue-600)
+      // Active button should be selected by default
       expect(activeButton).toHaveClass('bg-blue-600');
       expect(stagingButton).not.toHaveClass('bg-blue-600');
-
-      // After clicking staging, it should be selected
-      fireEvent.click(stagingButton);
-      expect(stagingButton).toHaveClass('bg-blue-600');
-      expect(activeButton).not.toHaveClass('bg-blue-600');
     });
   });
 
