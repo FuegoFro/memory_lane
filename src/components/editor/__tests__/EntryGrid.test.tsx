@@ -520,7 +520,7 @@ describe('EntryGrid', () => {
 
       // Active view: should offer "Move to Staging" and "Disable" (not "Move to Active")
       expect(screen.getByRole('button', { name: /move to staging/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /disable/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^disable$/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /move to active/i })).not.toBeInTheDocument();
     });
 
@@ -533,7 +533,7 @@ describe('EntryGrid', () => {
       fireEvent.click(checkboxes[0]);
 
       expect(screen.getByRole('button', { name: /move to active/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /disable/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^disable$/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /move to staging/i })).not.toBeInTheDocument();
     });
 
@@ -547,7 +547,7 @@ describe('EntryGrid', () => {
 
       expect(screen.getByRole('button', { name: /move to active/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /move to staging/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /disable/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^disable$/i })).not.toBeInTheDocument();
     });
 
     it('bulk move calls API for each selected entry and refreshes', async () => {

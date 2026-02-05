@@ -93,6 +93,29 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     }
   }
 
+  async function handleBulkMove(targetStatus: EntryStatus) {
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/edit/entries/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: targetStatus }),
+          })
+        )
+      );
+
+      const res = await fetch('/api/edit/entries');
+      const data = await res.json();
+      setEntries(data);
+    } catch (error) {
+      console.error('Bulk move failed:', error);
+    } finally {
+      clearSelection();
+    }
+  }
+
   function getStatusBadgeColor(status: EntryStatus): string {
     switch (status) {
       case 'active':
@@ -110,6 +133,11 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     { value: 'disabled', label: 'Disabled' },
     { value: 'all', label: 'All' },
   ];
+
+  const moveButtons: Array<{ label: string; status: EntryStatus }> = [];
+  if (filter !== 'active') moveButtons.push({ label: 'Move to Active', status: 'active' });
+  if (filter !== 'staging') moveButtons.push({ label: 'Move to Staging', status: 'staging' });
+  if (filter !== 'disabled') moveButtons.push({ label: 'Disable', status: 'disabled' });
 
   return (
     <div className="p-4">
@@ -268,6 +296,16 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           <span className="text-white font-medium">
             {selectedIds.size} selected
           </span>
+
+          {moveButtons.map((btn) => (
+            <button
+              key={btn.status}
+              onClick={() => handleBulkMove(btn.status)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              {btn.label}
+            </button>
+          ))}
 
           <button
             onClick={clearSelection}
