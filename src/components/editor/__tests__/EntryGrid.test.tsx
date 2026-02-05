@@ -509,4 +509,82 @@ describe('EntryGrid', () => {
       expect(screen.getByText('2 selected')).toBeInTheDocument();
     });
   });
+
+  describe('Floating action bar', () => {
+    it('shows context-appropriate move buttons for active filter', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      // Active view: should offer "Move to Staging" and "Disable" (not "Move to Active")
+      expect(screen.getByRole('button', { name: /move to staging/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /disable/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /move to active/i })).not.toBeInTheDocument();
+    });
+
+    it('shows context-appropriate move buttons for staging filter', () => {
+      mockSearchParams = new URLSearchParams('stage=staging');
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      expect(screen.getByRole('button', { name: /move to active/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /disable/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /move to staging/i })).not.toBeInTheDocument();
+    });
+
+    it('shows context-appropriate move buttons for disabled filter', () => {
+      mockSearchParams = new URLSearchParams('stage=disabled');
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      expect(screen.getByRole('button', { name: /move to active/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /move to staging/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /disable/i })).not.toBeInTheDocument();
+    });
+
+    it('bulk move calls API for each selected entry and refreshes', async () => {
+      const entries = createTestEntries();
+      // Mock: all PUT calls succeed, then GET entries returns updated list
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(entries) });
+
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+      fireEvent.click(checkboxes[1]);
+
+      fireEvent.click(screen.getByRole('button', { name: /move to staging/i }));
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/entry-1', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'staging' }),
+        });
+        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/entry-2', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'staging' }),
+        });
+      });
+
+      // Should refresh entries list after bulk move
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries');
+      });
+
+      // Selection should be cleared
+      await waitFor(() => {
+        expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+      });
+    });
+  });
 });
