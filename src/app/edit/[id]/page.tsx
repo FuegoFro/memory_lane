@@ -6,15 +6,19 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
-export default async function EditEntryPage({ params }: PageProps) {
+export default async function EditEntryPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { from } = await searchParams;
   const entry = getEntryById(id);
 
   if (!entry) {
     notFound();
   }
 
-  return <EntryEditor entry={entry} />;
+  const backHref = from ? `/edit?stage=${from}` : '/edit';
+
+  return <EntryEditor entry={entry} backHref={backHref} />;
 }

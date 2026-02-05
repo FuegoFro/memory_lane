@@ -2,14 +2,17 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
 
 interface EntryEditorProps {
   entry: Entry;
+  backHref?: string;
 }
 
-export function EntryEditor({ entry }: EntryEditorProps) {
+export function EntryEditor({ entry, backHref }: EntryEditorProps) {
   const router = useRouter();
+  const backUrl = backHref || '/edit';
 
   const [title, setTitle] = useState(entry.title || '');
   const [transcript, setTranscript] = useState(entry.transcript || '');
@@ -31,14 +34,14 @@ export function EntryEditor({ entry }: EntryEditorProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, transcript, status }),
       });
-      router.push('/edit');
+      router.push(backUrl);
     } finally {
       setSaving(false);
     }
   }
 
   function handleCancel() {
-    router.push('/edit');
+    router.push(backUrl);
   }
 
   async function handleDeleteNarration() {
@@ -125,6 +128,13 @@ export function EntryEditor({ entry }: EntryEditorProps) {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      <Link
+        href={backUrl}
+        className="inline-flex items-center text-gray-400 hover:text-white transition-colors mb-4"
+      >
+        ← Back to grid
+      </Link>
+
       {/* Media Preview */}
       <div className="mb-6">
         {isVideo ? (
