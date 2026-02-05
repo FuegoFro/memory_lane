@@ -250,7 +250,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} backHref="/edit?stage=active" />);
 
       const saveButton = screen.getByRole('button', { name: /save/i });
       fireEvent.click(saveButton);
@@ -268,7 +268,7 @@ describe('EntryEditor', () => {
       });
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/edit');
+        expect(mockPush).toHaveBeenCalledWith('/edit?stage=active');
       });
     });
 
@@ -337,14 +337,33 @@ describe('EntryEditor', () => {
       expect(cancelButton).toBeInTheDocument();
     });
 
-    it('navigates to /edit on cancel', () => {
+    it('navigates back on cancel', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} backHref="/edit?stage=staging" />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
 
-      expect(mockPush).toHaveBeenCalledWith('/edit');
+      expect(mockPush).toHaveBeenCalledWith('/edit?stage=staging');
+    });
+  });
+
+  describe('Back button', () => {
+    it('renders a back link', () => {
+      const entry = createImageEntry();
+      render(<EntryEditor entry={entry} backHref="/edit?stage=active" />);
+
+      const backLink = screen.getByRole('link', { name: /back to grid/i });
+      expect(backLink).toBeInTheDocument();
+      expect(backLink).toHaveAttribute('href', '/edit?stage=active');
+    });
+
+    it('defaults back link to /edit when no backHref provided', () => {
+      const entry = createImageEntry();
+      render(<EntryEditor entry={entry} />);
+
+      const backLink = screen.getByRole('link', { name: /back to grid/i });
+      expect(backLink).toHaveAttribute('href', '/edit');
     });
   });
 
