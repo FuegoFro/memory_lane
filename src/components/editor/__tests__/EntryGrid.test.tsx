@@ -416,4 +416,97 @@ describe('EntryGrid', () => {
       expect(overlays.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Multi-select', () => {
+    it('renders checkboxes on entry cards', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes).toHaveLength(2); // 2 active entries shown by default
+    });
+
+    it('clicking checkbox selects an entry without navigating', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      expect(checkboxes[0]).toBeChecked();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('shows floating action bar when entries are selected', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+    });
+
+    it('shows correct count when multiple entries selected', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+      fireEvent.click(checkboxes[1]);
+
+      expect(screen.getByText('2 selected')).toBeInTheDocument();
+    });
+
+    it('hides floating action bar when selection is cleared', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+      // Uncheck
+      fireEvent.click(checkboxes[0]);
+      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+    });
+
+    it('clear button deselects all entries', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+      fireEvent.click(checkboxes[1]);
+
+      const clearButton = screen.getByRole('button', { name: /clear/i });
+      fireEvent.click(clearButton);
+
+      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+      checkboxes.forEach((cb) => expect(cb).not.toBeChecked());
+    });
+
+    it('shows select all button when any entry is selected', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      expect(screen.getByRole('button', { name: /select all/i })).toBeInTheDocument();
+    });
+
+    it('select all selects all visible entries', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]); // Select one to reveal "Select all"
+
+      fireEvent.click(screen.getByRole('button', { name: /select all/i }));
+
+      checkboxes.forEach((cb) => expect(cb).toBeChecked());
+      expect(screen.getByText('2 selected')).toBeInTheDocument();
+    });
+  });
 });
