@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(yes:*)",
-      "Bash(git restore:*)"
-    ]
-  }
-}
