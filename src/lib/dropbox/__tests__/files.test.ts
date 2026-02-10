@@ -15,7 +15,7 @@ const mockDropboxClient = {
 
 vi.mock('../client', () => ({
   getDropboxClient: vi.fn(() => Promise.resolve(mockDropboxClient)),
-  getDropboxFolder: vi.fn(() => '/MemoryLane'),
+  getDropboxFolder: vi.fn(() => ''),
 }))
 
 describe('Dropbox file operations', () => {
@@ -32,14 +32,14 @@ describe('Dropbox file operations', () => {
             {
               '.tag': 'file',
               name: 'vacation.jpg',
-              path_display: '/MemoryLane/vacation.jpg',
-              path_lower: '/memorylane/vacation.jpg',
+              path_display: '/vacation.jpg',
+              path_lower: '/vacation.jpg',
             },
             {
               '.tag': 'file',
               name: 'birthday.png',
-              path_display: '/MemoryLane/birthday.png',
-              path_lower: '/memorylane/birthday.png',
+              path_display: '/birthday.png',
+              path_lower: '/birthday.png',
             },
           ],
         },
@@ -50,7 +50,7 @@ describe('Dropbox file operations', () => {
 
       expect(files).toHaveLength(2)
       expect(files[0]).toEqual({
-        path: '/MemoryLane/vacation.jpg',
+        path: '/vacation.jpg',
         name: 'vacation.jpg',
         isVideo: false,
         hasNarration: false,
@@ -64,20 +64,20 @@ describe('Dropbox file operations', () => {
             {
               '.tag': 'file',
               name: 'photo.jpg',
-              path_display: '/MemoryLane/photo.jpg',
-              path_lower: '/memorylane/photo.jpg',
+              path_display: '/photo.jpg',
+              path_lower: '/photo.jpg',
             },
             {
               '.tag': 'file',
               name: 'document.pdf',
-              path_display: '/MemoryLane/document.pdf',
-              path_lower: '/memorylane/document.pdf',
+              path_display: '/document.pdf',
+              path_lower: '/document.pdf',
             },
             {
               '.tag': 'file',
               name: 'readme.txt',
-              path_display: '/MemoryLane/readme.txt',
-              path_lower: '/memorylane/readme.txt',
+              path_display: '/readme.txt',
+              path_lower: '/readme.txt',
             },
           ],
         },
@@ -94,11 +94,11 @@ describe('Dropbox file operations', () => {
       mockFilesListFolder.mockResolvedValue({
         result: {
           entries: [
-            { '.tag': 'file', name: 'a.jpg', path_display: '/MemoryLane/a.jpg', path_lower: '/memorylane/a.jpg' },
-            { '.tag': 'file', name: 'b.jpeg', path_display: '/MemoryLane/b.jpeg', path_lower: '/memorylane/b.jpeg' },
-            { '.tag': 'file', name: 'c.png', path_display: '/MemoryLane/c.png', path_lower: '/memorylane/c.png' },
-            { '.tag': 'file', name: 'd.gif', path_display: '/MemoryLane/d.gif', path_lower: '/memorylane/d.gif' },
-            { '.tag': 'file', name: 'e.webp', path_display: '/MemoryLane/e.webp', path_lower: '/memorylane/e.webp' },
+            { '.tag': 'file', name: 'a.jpg', path_display: '/a.jpg', path_lower: '/a.jpg' },
+            { '.tag': 'file', name: 'b.jpeg', path_display: '/b.jpeg', path_lower: '/b.jpeg' },
+            { '.tag': 'file', name: 'c.png', path_display: '/c.png', path_lower: '/c.png' },
+            { '.tag': 'file', name: 'd.gif', path_display: '/d.gif', path_lower: '/d.gif' },
+            { '.tag': 'file', name: 'e.webp', path_display: '/e.webp', path_lower: '/e.webp' },
           ],
         },
       })
@@ -116,10 +116,10 @@ describe('Dropbox file operations', () => {
       mockFilesListFolder.mockResolvedValue({
         result: {
           entries: [
-            { '.tag': 'file', name: 'a.mp4', path_display: '/MemoryLane/a.mp4', path_lower: '/memorylane/a.mp4' },
-            { '.tag': 'file', name: 'b.mov', path_display: '/MemoryLane/b.mov', path_lower: '/memorylane/b.mov' },
-            { '.tag': 'file', name: 'c.webm', path_display: '/MemoryLane/c.webm', path_lower: '/memorylane/c.webm' },
-            { '.tag': 'file', name: 'd.avi', path_display: '/MemoryLane/d.avi', path_lower: '/memorylane/d.avi' },
+            { '.tag': 'file', name: 'a.mp4', path_display: '/a.mp4', path_lower: '/a.mp4' },
+            { '.tag': 'file', name: 'b.mov', path_display: '/b.mov', path_lower: '/b.mov' },
+            { '.tag': 'file', name: 'c.webm', path_display: '/c.webm', path_lower: '/c.webm' },
+            { '.tag': 'file', name: 'd.avi', path_display: '/d.avi', path_lower: '/d.avi' },
           ],
         },
       })
@@ -137,8 +137,8 @@ describe('Dropbox file operations', () => {
       mockFilesListFolder.mockResolvedValue({
         result: {
           entries: [
-            { '.tag': 'file', name: 'PHOTO.JPG', path_display: '/MemoryLane/PHOTO.JPG', path_lower: '/memorylane/photo.jpg' },
-            { '.tag': 'file', name: 'video.MP4', path_display: '/MemoryLane/video.MP4', path_lower: '/memorylane/video.mp4' },
+            { '.tag': 'file', name: 'PHOTO.JPG', path_display: '/PHOTO.JPG', path_lower: '/photo.jpg' },
+            { '.tag': 'file', name: 'video.MP4', path_display: '/video.MP4', path_lower: '/video.mp4' },
           ],
         },
       })
@@ -158,20 +158,20 @@ describe('Dropbox file operations', () => {
             {
               '.tag': 'file',
               name: 'vacation.jpg',
-              path_display: '/MemoryLane/vacation.jpg',
-              path_lower: '/memorylane/vacation.jpg',
+              path_display: '/vacation.jpg',
+              path_lower: '/vacation.jpg',
             },
             {
               '.tag': 'file',
               name: 'vacation.jpg.narration.webm',
-              path_display: '/MemoryLane/vacation.jpg.narration.webm',
-              path_lower: '/memorylane/vacation.jpg.narration.webm',
+              path_display: '/vacation.jpg.narration.webm',
+              path_lower: '/vacation.jpg.narration.webm',
             },
             {
               '.tag': 'file',
               name: 'birthday.png',
-              path_display: '/MemoryLane/birthday.png',
-              path_lower: '/memorylane/birthday.png',
+              path_display: '/birthday.png',
+              path_lower: '/birthday.png',
             },
           ],
         },
@@ -194,14 +194,14 @@ describe('Dropbox file operations', () => {
             {
               '.tag': 'folder',
               name: 'subfolder',
-              path_display: '/MemoryLane/subfolder',
-              path_lower: '/memorylane/subfolder',
+              path_display: '/subfolder',
+              path_lower: '/subfolder',
             },
             {
               '.tag': 'file',
               name: 'photo.jpg',
-              path_display: '/MemoryLane/photo.jpg',
-              path_lower: '/memorylane/photo.jpg',
+              path_display: '/photo.jpg',
+              path_lower: '/photo.jpg',
             },
           ],
         },
@@ -222,7 +222,7 @@ describe('Dropbox file operations', () => {
       const { listMediaFiles } = await import('../files')
       await listMediaFiles()
 
-      expect(mockFilesListFolder).toHaveBeenCalledWith({ path: '/MemoryLane' })
+      expect(mockFilesListFolder).toHaveBeenCalledWith({ path: '' })
     })
   })
 
@@ -233,10 +233,10 @@ describe('Dropbox file operations', () => {
       })
 
       const { getTemporaryLink } = await import('../files')
-      const link = await getTemporaryLink('/MemoryLane/photo.jpg')
+      const link = await getTemporaryLink('/photo.jpg')
 
       expect(link).toBe('https://dl.dropbox.com/temp-link-123')
-      expect(mockFilesGetTemporaryLink).toHaveBeenCalledWith({ path: '/MemoryLane/photo.jpg' })
+      expect(mockFilesGetTemporaryLink).toHaveBeenCalledWith({ path: '/photo.jpg' })
     })
 
     it('should return cached link on second call within cache period', async () => {
@@ -246,8 +246,8 @@ describe('Dropbox file operations', () => {
 
       const { getTemporaryLink } = await import('../files')
 
-      const link1 = await getTemporaryLink('/MemoryLane/photo.jpg')
-      const link2 = await getTemporaryLink('/MemoryLane/photo.jpg')
+      const link1 = await getTemporaryLink('/photo.jpg')
+      const link2 = await getTemporaryLink('/photo.jpg')
 
       expect(link1).toBe('https://dl.dropbox.com/cached-link')
       expect(link2).toBe('https://dl.dropbox.com/cached-link')
@@ -266,13 +266,13 @@ describe('Dropbox file operations', () => {
 
       const { getTemporaryLink } = await import('../files')
 
-      const link1 = await getTemporaryLink('/MemoryLane/photo.jpg')
+      const link1 = await getTemporaryLink('/photo.jpg')
       expect(link1).toBe('https://dl.dropbox.com/link-1')
 
       // Advance time by 4 hours (cache expires after 3 hours)
       currentTime += 4 * 60 * 60 * 1000
 
-      const link2 = await getTemporaryLink('/MemoryLane/photo.jpg')
+      const link2 = await getTemporaryLink('/photo.jpg')
       expect(link2).toBe('https://dl.dropbox.com/link-2')
       expect(mockFilesGetTemporaryLink).toHaveBeenCalledTimes(2)
 
@@ -287,10 +287,10 @@ describe('Dropbox file operations', () => {
       const { uploadNarration } = await import('../files')
       const audioData = Buffer.from('fake audio data')
 
-      await uploadNarration('/MemoryLane/photo.jpg', audioData)
+      await uploadNarration('/photo.jpg', audioData)
 
       expect(mockFilesUpload).toHaveBeenCalledWith({
-        path: '/MemoryLane/photo.jpg.narration.webm',
+        path: '/photo.jpg.narration.webm',
         contents: audioData,
         mode: { '.tag': 'overwrite' },
       })
@@ -305,12 +305,12 @@ describe('Dropbox file operations', () => {
       const { uploadNarration, getTemporaryLink } = await import('../files')
 
       // First, get a link to populate the cache
-      const narrationPath = '/MemoryLane/photo.jpg.narration.webm'
+      const narrationPath = '/photo.jpg.narration.webm'
       await getTemporaryLink(narrationPath)
       expect(mockFilesGetTemporaryLink).toHaveBeenCalledTimes(1)
 
       // Upload a new narration
-      await uploadNarration('/MemoryLane/photo.jpg', Buffer.from('new audio'))
+      await uploadNarration('/photo.jpg', Buffer.from('new audio'))
 
       // Getting the link again should fetch from API (cache invalidated)
       await getTemporaryLink(narrationPath)
@@ -323,10 +323,10 @@ describe('Dropbox file operations', () => {
       mockFilesDeleteV2.mockResolvedValue({ result: {} })
 
       const { deleteNarration } = await import('../files')
-      await deleteNarration('/MemoryLane/photo.jpg')
+      await deleteNarration('/photo.jpg')
 
       expect(mockFilesDeleteV2).toHaveBeenCalledWith({
-        path: '/MemoryLane/photo.jpg.narration.webm',
+        path: '/photo.jpg.narration.webm',
       })
     })
 
@@ -337,7 +337,7 @@ describe('Dropbox file operations', () => {
       const { deleteNarration } = await import('../files')
 
       // Should not throw
-      await expect(deleteNarration('/MemoryLane/photo.jpg')).resolves.toBeUndefined()
+      await expect(deleteNarration('/photo.jpg')).resolves.toBeUndefined()
     })
 
     it('should throw for other errors', async () => {
@@ -346,7 +346,7 @@ describe('Dropbox file operations', () => {
 
       const { deleteNarration } = await import('../files')
 
-      await expect(deleteNarration('/MemoryLane/photo.jpg')).rejects.toEqual(otherError)
+      await expect(deleteNarration('/photo.jpg')).rejects.toEqual(otherError)
     })
 
     it('should invalidate the link cache for the narration file', async () => {
@@ -358,12 +358,12 @@ describe('Dropbox file operations', () => {
       const { deleteNarration, getTemporaryLink } = await import('../files')
 
       // First, get a link to populate the cache
-      const narrationPath = '/MemoryLane/photo.jpg.narration.webm'
+      const narrationPath = '/photo.jpg.narration.webm'
       await getTemporaryLink(narrationPath)
       expect(mockFilesGetTemporaryLink).toHaveBeenCalledTimes(1)
 
       // Delete the narration
-      await deleteNarration('/MemoryLane/photo.jpg')
+      await deleteNarration('/photo.jpg')
 
       // Getting the link again should fetch from API (cache invalidated)
       await getTemporaryLink(narrationPath)
@@ -375,8 +375,8 @@ describe('Dropbox file operations', () => {
     it('should append .narration.webm suffix to the media path', async () => {
       const { getNarrationPath } = await import('../files')
 
-      expect(getNarrationPath('/MemoryLane/photo.jpg')).toBe('/MemoryLane/photo.jpg.narration.webm')
-      expect(getNarrationPath('/MemoryLane/video.mp4')).toBe('/MemoryLane/video.mp4.narration.webm')
+      expect(getNarrationPath('/photo.jpg')).toBe('/photo.jpg.narration.webm')
+      expect(getNarrationPath('/video.mp4')).toBe('/video.mp4.narration.webm')
       expect(getNarrationPath('/path/with spaces/file.png')).toBe('/path/with spaces/file.png.narration.webm')
     })
   })

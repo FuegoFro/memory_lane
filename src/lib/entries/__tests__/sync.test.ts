@@ -55,25 +55,25 @@ describe('syncFromDropbox', () => {
 
   it('creates entries for new files from Dropbox', async () => {
     mockListMediaFiles.mockResolvedValue([
-      { path: '/MemoryLane/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false },
+      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false },
+      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false },
     ]);
 
     const result = await syncFromDropbox();
 
     const entries = getAllEntries();
     expect(entries).toHaveLength(2);
-    expect(entries.map((e) => e.dropbox_path)).toContain('/MemoryLane/photo1.jpg');
-    expect(entries.map((e) => e.dropbox_path)).toContain('/MemoryLane/photo2.jpg');
+    expect(entries.map((e) => e.dropbox_path)).toContain('/photo1.jpg');
+    expect(entries.map((e) => e.dropbox_path)).toContain('/photo2.jpg');
     expect(result.added).toBe(2);
   });
 
   it('counts unchanged (existing) entries', async () => {
     // Pre-create an entry that already exists
-    createEntry('/MemoryLane/existing.jpg');
+    createEntry('/existing.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/MemoryLane/existing.jpg', name: 'existing.jpg', isVideo: false, hasNarration: false },
+      { path: '/existing.jpg', name: 'existing.jpg', isVideo: false, hasNarration: false },
     ]);
 
     const result = await syncFromDropbox();
@@ -84,7 +84,7 @@ describe('syncFromDropbox', () => {
 
   it('counts removed (missing from Dropbox) entries', async () => {
     // Pre-create an entry that no longer exists in Dropbox
-    createEntry('/MemoryLane/deleted.jpg');
+    createEntry('/deleted.jpg');
 
     mockListMediaFiles.mockResolvedValue([]);
 
@@ -92,16 +92,16 @@ describe('syncFromDropbox', () => {
 
     expect(result.removed).toBe(1);
     // Entry should still exist (not auto-deleted)
-    const entry = getEntryByPath('/MemoryLane/deleted.jpg');
+    const entry = getEntryByPath('/deleted.jpg');
     expect(entry).toBeDefined();
   });
 
   it('does not create duplicates for existing paths', async () => {
     // Pre-create an entry
-    createEntry('/MemoryLane/photo.jpg');
+    createEntry('/photo.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/MemoryLane/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false },
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false },
     ]);
 
     await syncFromDropbox();
@@ -113,16 +113,16 @@ describe('syncFromDropbox', () => {
 
   it('returns SyncResult with correct counts', async () => {
     // Pre-create some entries
-    createEntry('/MemoryLane/existing1.jpg');
-    createEntry('/MemoryLane/existing2.jpg');
-    createEntry('/MemoryLane/removed.jpg');
+    createEntry('/existing1.jpg');
+    createEntry('/existing2.jpg');
+    createEntry('/removed.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/MemoryLane/existing1.jpg', name: 'existing1.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/existing2.jpg', name: 'existing2.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/new1.jpg', name: 'new1.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/new2.jpg', name: 'new2.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/new3.jpg', name: 'new3.jpg', isVideo: false, hasNarration: false },
+      { path: '/existing1.jpg', name: 'existing1.jpg', isVideo: false, hasNarration: false },
+      { path: '/existing2.jpg', name: 'existing2.jpg', isVideo: false, hasNarration: false },
+      { path: '/new1.jpg', name: 'new1.jpg', isVideo: false, hasNarration: false },
+      { path: '/new2.jpg', name: 'new2.jpg', isVideo: false, hasNarration: false },
+      { path: '/new3.jpg', name: 'new3.jpg', isVideo: false, hasNarration: false },
     ]);
 
     const result = await syncFromDropbox();
@@ -152,9 +152,9 @@ describe('syncFromDropbox', () => {
 
   it('handles empty database with files in Dropbox', async () => {
     mockListMediaFiles.mockResolvedValue([
-      { path: '/MemoryLane/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false },
-      { path: '/MemoryLane/video.mp4', name: 'video.mp4', isVideo: true, hasNarration: false },
+      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false },
+      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false },
+      { path: '/video.mp4', name: 'video.mp4', isVideo: true, hasNarration: false },
     ]);
 
     const result = await syncFromDropbox();

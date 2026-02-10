@@ -136,6 +136,7 @@ describe('Dropbox client', () => {
         clientId: 'my-app-key',
         clientSecret: 'my-app-secret',
         refreshToken: 'my-refresh-token',
+        fetch,
       })
     })
   })
@@ -150,13 +151,13 @@ describe('Dropbox client', () => {
       expect(folder).toBe('/CustomFolder')
     })
 
-    it("should return '/MemoryLane' as default when DROPBOX_FOLDER is not set", async () => {
+    it("should return '' as default when DROPBOX_FOLDER is not set", async () => {
       delete process.env.DROPBOX_FOLDER
 
       const { getDropboxFolder } = await import('../client')
       const folder = getDropboxFolder()
 
-      expect(folder).toBe('/MemoryLane')
+      expect(folder).toBe('')
     })
   })
 })

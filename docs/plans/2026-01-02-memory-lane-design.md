@@ -66,7 +66,7 @@ Narration audio path is derived: `dropbox_path` → `dropbox_path + ".narration.
 
 **Folder structure:**
 ```
-/MemoryLane/
+<DROPBOX_FOLDER>/
   ├── beach-2024.jpg
   ├── beach-2024.jpg.narration.webm
   ├── birthday-video.mp4
@@ -235,7 +235,7 @@ SESSION_SECRET=<random string for JWT signing>
 DROPBOX_REFRESH_TOKEN=<long-lived token>
 DROPBOX_APP_KEY=<from Dropbox app console>
 DROPBOX_APP_SECRET=<from Dropbox app console>
-DROPBOX_FOLDER=/MemoryLane
+DROPBOX_FOLDER=
 
 # Gemini
 GEMINI_API_KEY=<from Google AI Studio>

@@ -32,6 +32,14 @@ export async function POST(request: NextRequest) {
     const totpValid = verifyTOTP(totp, totpSecret)
 
     if (!passwordValid || !totpValid) {
+      console.warn(
+        'Login failed:',
+        !passwordValid && !totpValid
+          ? 'invalid password and TOTP'
+          : !passwordValid
+            ? 'invalid password (TOTP was correct)'
+            : 'invalid TOTP (password was correct)'
+      )
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }

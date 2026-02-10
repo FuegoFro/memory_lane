@@ -24,6 +24,7 @@ export async function getDropboxClient(): Promise<Dropbox> {
     clientId: appKey,
     clientSecret: appSecret,
     refreshToken,
+    fetch,
   })
 
   cachedClient = client
@@ -34,5 +35,5 @@ export async function getDropboxClient(): Promise<Dropbox> {
 }
 
 export function getDropboxFolder(): string {
-  return process.env.DROPBOX_FOLDER || '/MemoryLane'
+  return process.env.DROPBOX_FOLDER || ''
 }

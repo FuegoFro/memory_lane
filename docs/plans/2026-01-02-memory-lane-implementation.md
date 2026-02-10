@@ -101,7 +101,7 @@ SESSION_SECRET=
 DROPBOX_APP_KEY=
 DROPBOX_APP_SECRET=
 DROPBOX_REFRESH_TOKEN=
-DROPBOX_FOLDER=/MemoryLane
+DROPBOX_FOLDER=
 
 # Gemini
 GEMINI_API_KEY=
@@ -692,7 +692,7 @@ export async function getDropboxClient(): Promise<Dropbox> {
 }
 
 export function getDropboxFolder(): string {
-  return process.env.DROPBOX_FOLDER || '/MemoryLane';
+  return process.env.DROPBOX_FOLDER || '';
 }
 ```
 

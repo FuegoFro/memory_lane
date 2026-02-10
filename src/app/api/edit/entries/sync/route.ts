@@ -6,7 +6,7 @@ export async function POST() {
     const result = await syncFromDropbox();
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Sync failed:', error);
+    console.error('Sync failed:', JSON.stringify(error, null, 2));
     return NextResponse.json(
       { error: 'Sync failed' },
       { status: 500 }
