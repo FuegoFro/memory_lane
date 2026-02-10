@@ -62,7 +62,7 @@ describe('transcribeAudio', () => {
 
     // Verify the correct model was requested
     expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash-preview-05-20',
+      model: 'gemini-2.5-flash',
     });
 
     // Verify generateContent was called with audio data and prompt
