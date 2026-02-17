@@ -54,6 +54,8 @@ Use `getEntryStatus()` from `src/types/index.ts` to derive status.
 3. Middleware (`src/middleware.ts`) protects `/edit` and `/api/edit/*` routes
 4. Sessions verified with jose JWT library
 
+**Dev-only login bypass:** `POST /api/auth/dev-login` creates an authenticated session without credentials. Only works when `NODE_ENV !== 'production'`. Use this for automated/agent testing against a local dev server.
+
 ### Testing Notes
 
 Tests run serially (not parallel) due to SQLite singleton. Test files are in `__tests__/` directories adjacent to source files.
