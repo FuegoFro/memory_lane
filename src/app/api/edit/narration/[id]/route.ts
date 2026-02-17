@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntryById } from '@/lib/entries';
+import { getEntryById, updateEntry } from '@/lib/entries';
 import { uploadNarration, deleteNarration } from '@/lib/dropbox';
 
 export async function POST(
@@ -58,6 +58,7 @@ export async function DELETE(
     }
 
     await deleteNarration(entry.dropbox_path);
+    updateEntry(id, { transcript: null });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -21,7 +21,9 @@ export async function GET(
 
     try {
       const link = await getTemporaryLink(narrationPath);
-      return NextResponse.redirect(link);
+      const response = NextResponse.redirect(link);
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
     } catch {
       // Narration doesn't exist
       return NextResponse.json(

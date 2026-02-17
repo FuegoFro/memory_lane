@@ -59,6 +59,27 @@ describe('GET /api/narration/[id]', () => {
     expect(mockGetTemporaryLink).toHaveBeenCalledWith('/photos/test.jpg.narration.webm');
   });
 
+  it('sets Cache-Control no-store on redirect to prevent stale audio', async () => {
+    const mockEntry = {
+      id: 'entry-1',
+      dropbox_path: '/photos/test.jpg',
+      title: 'Test Photo',
+      transcript: null,
+      position: 0,
+      disabled: 0,
+      created_at: '2024-01-01 10:00:00',
+      updated_at: '2024-01-01 10:00:00',
+    };
+    mockGetEntryById.mockReturnValue(mockEntry);
+    mockGetNarrationPath.mockReturnValue('/photos/test.jpg.narration.webm');
+    mockGetTemporaryLink.mockResolvedValue('https://dropbox.com/narration-link-123');
+
+    const request = createMockRequest('entry-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'entry-1' }) });
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
   it('returns 404 for non-existent entry', async () => {
     mockGetEntryById.mockReturnValue(undefined);
 

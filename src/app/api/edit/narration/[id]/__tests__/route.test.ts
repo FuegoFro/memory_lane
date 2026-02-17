@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 // Mock the entries module before importing the route handlers
 vi.mock('@/lib/entries', () => ({
   getEntryById: vi.fn(),
+  updateEntry: vi.fn(),
 }));
 
 // Mock the dropbox module before importing the route handlers
@@ -16,12 +17,13 @@ vi.mock('@/lib/dropbox', () => ({
 import { POST, DELETE } from '../route';
 
 // Import the mocked functions
-import { getEntryById } from '@/lib/entries';
+import { getEntryById, updateEntry } from '@/lib/entries';
 import { uploadNarration, deleteNarration } from '@/lib/dropbox';
 
 const mockGetEntryById = vi.mocked(getEntryById);
 const mockUploadNarration = vi.mocked(uploadNarration);
 const mockDeleteNarration = vi.mocked(deleteNarration);
+const mockUpdateEntry = vi.mocked(updateEntry);
 
 describe('POST /api/edit/narration/[id]', () => {
   beforeEach(() => {
@@ -157,6 +159,26 @@ describe('DELETE /api/edit/narration/[id]', () => {
     expect(body.success).toBe(true);
     expect(mockGetEntryById).toHaveBeenCalledWith('entry-1');
     expect(mockDeleteNarration).toHaveBeenCalledWith('/photos/test.jpg');
+  });
+
+  it('clears transcript in database when deleting narration', async () => {
+    const mockEntry = {
+      id: 'entry-1',
+      dropbox_path: '/photos/test.jpg',
+      title: 'Test Photo',
+      transcript: 'Some existing transcript',
+      position: 0,
+      disabled: 0,
+      created_at: '2024-01-01 10:00:00',
+      updated_at: '2024-01-01 10:00:00',
+    };
+    mockGetEntryById.mockReturnValue(mockEntry);
+    mockDeleteNarration.mockResolvedValue(undefined);
+
+    const request = createMockRequest('entry-1');
+    await DELETE(request, { params: Promise.resolve({ id: 'entry-1' }) });
+
+    expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { transcript: null });
   });
 
   it('returns 404 for non-existent entry', async () => {

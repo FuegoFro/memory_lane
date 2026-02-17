@@ -108,8 +108,16 @@ export async function deleteNarration(mediaPath: string): Promise<void> {
   try {
     await client.filesDeleteV2({ path: narrationPath });
   } catch (error: unknown) {
-    // Ignore if file doesn't exist
-    if (error && typeof error === 'object' && 'status' in error && error.status !== 409) {
+    // Only ignore path_not_found errors; re-throw everything else
+    const isNotFound =
+      error &&
+      typeof error === 'object' &&
+      'status' in error &&
+      error.status === 409 &&
+      'error' in error &&
+      typeof (error as { error: unknown }).error === 'object' &&
+      (error as { error: { error_summary?: string } }).error?.error_summary?.includes('not_found');
+    if (!isNotFound) {
       throw error;
     }
   }

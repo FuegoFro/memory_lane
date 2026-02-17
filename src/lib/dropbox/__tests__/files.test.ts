@@ -330,8 +330,11 @@ describe('Dropbox file operations', () => {
       })
     })
 
-    it('should not throw if the narration file does not exist (409 status)', async () => {
-      const notFoundError = { status: 409 }
+    it('should not throw if the narration file does not exist (409 path_not_found)', async () => {
+      const notFoundError = {
+        status: 409,
+        error: { error_summary: 'path_lookup/not_found/' },
+      }
       mockFilesDeleteV2.mockRejectedValue(notFoundError)
 
       const { deleteNarration } = await import('../files')
@@ -340,13 +343,34 @@ describe('Dropbox file operations', () => {
       await expect(deleteNarration('/photo.jpg')).resolves.toBeUndefined()
     })
 
-    it('should throw for other errors', async () => {
+    it('should throw for other HTTP errors', async () => {
       const otherError = { status: 500, message: 'Server error' }
       mockFilesDeleteV2.mockRejectedValue(otherError)
 
       const { deleteNarration } = await import('../files')
 
       await expect(deleteNarration('/photo.jpg')).rejects.toEqual(otherError)
+    })
+
+    it('should throw for errors without a status property', async () => {
+      const networkError = new Error('Network failure')
+      mockFilesDeleteV2.mockRejectedValue(networkError)
+
+      const { deleteNarration } = await import('../files')
+
+      await expect(deleteNarration('/photo.jpg')).rejects.toThrow('Network failure')
+    })
+
+    it('should only swallow path_not_found 409 errors, not other 409 errors', async () => {
+      const conflictError = {
+        status: 409,
+        error: { error_summary: 'too_many_write_operations/...' },
+      }
+      mockFilesDeleteV2.mockRejectedValue(conflictError)
+
+      const { deleteNarration } = await import('../files')
+
+      await expect(deleteNarration('/photo.jpg')).rejects.toEqual(conflictError)
     })
 
     it('should invalidate the link cache for the narration file', async () => {

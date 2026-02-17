@@ -1,35 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import fs from 'fs';
-import path from 'path';
-
-// Create a test database path - use a unique path that won't conflict with other tests
-const TEST_DB_PATH = '/tmp/test-memory-lane-sync.db';
-
-// Set environment variable before importing anything that uses db
-process.env.DATABASE_PATH = TEST_DB_PATH;
-
-// Ensure the test database is initialized with schema before importing repository
-import Database from 'better-sqlite3';
-
-// Initialize test database with schema before module loads
-const schemaPath = path.join(process.cwd(), 'src/lib/db/schema.sql');
-const schema = fs.readFileSync(schemaPath, 'utf-8');
-
-// Clean up any existing test database first
-if (fs.existsSync(TEST_DB_PATH)) {
-  fs.unlinkSync(TEST_DB_PATH);
-}
-
-const initDb = new Database(TEST_DB_PATH);
-initDb.exec(schema);
-initDb.close();
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the dropbox module before importing sync
 vi.mock('@/lib/dropbox', () => ({
   listMediaFiles: vi.fn(),
 }));
 
-// Now import the db and sync modules
 import db from '@/lib/db';
 import { syncFromDropbox } from '../sync';
 import { createEntry, getAllEntries, getEntryByPath } from '../repository';
@@ -40,17 +15,8 @@ const mockListMediaFiles = vi.mocked(listMediaFiles);
 
 describe('syncFromDropbox', () => {
   beforeEach(() => {
-    // Clear all entries before each test
     db.exec('DELETE FROM entries');
     vi.clearAllMocks();
-  });
-
-  afterAll(() => {
-    // Cleanup test database file
-    db.close();
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
   });
 
   it('creates entries for new files from Dropbox', async () => {

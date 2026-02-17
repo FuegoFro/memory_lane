@@ -1,24 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import fs from 'fs';
-import path from 'path';
-
-// Create a test database path
-const TEST_DB_PATH = '/tmp/test-memory-lane-entries.db';
-
-// Set environment variable before importing anything that uses db
-process.env.DATABASE_PATH = TEST_DB_PATH;
-
-// Ensure the test database is initialized with schema before importing repository
-import Database from 'better-sqlite3';
-
-// Initialize test database with schema before module loads
-const schemaPath = path.join(process.cwd(), 'src/lib/db/schema.sql');
-const schema = fs.readFileSync(schemaPath, 'utf-8');
-const initDb = new Database(TEST_DB_PATH);
-initDb.exec(schema);
-initDb.close();
-
-// Now import the repository and db (they will use our test database)
+import { describe, it, expect, beforeEach } from 'vitest';
 import db from '@/lib/db';
 import {
   getAllEntries,
@@ -36,16 +16,7 @@ import {
 
 describe('entry repository', () => {
   beforeEach(() => {
-    // Clear all entries before each test
     db.exec('DELETE FROM entries');
-  });
-
-  afterAll(() => {
-    // Cleanup test database file
-    db.close();
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
   });
 
   describe('getAllEntries', () => {

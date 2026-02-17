@@ -8,9 +8,10 @@ import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
 interface EntryEditorProps {
   entry: Entry;
   backHref?: string;
+  hasNarration?: boolean;
 }
 
-export function EntryEditor({ entry, backHref }: EntryEditorProps) {
+export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = true }: EntryEditorProps) {
   const router = useRouter();
   const backUrl = backHref || '/edit';
 
@@ -20,6 +21,8 @@ export function EntryEditor({ entry, backHref }: EntryEditorProps) {
   const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [hasNarration, setHasNarration] = useState(initialHasNarration);
+  const [narrationKey, setNarrationKey] = useState('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -48,9 +51,14 @@ export function EntryEditor({ entry, backHref }: EntryEditorProps) {
     if (!confirm('Are you sure you want to delete the narration?')) {
       return;
     }
-    await fetch(`/api/edit/narration/${entry.id}`, {
+    const res = await fetch(`/api/edit/narration/${entry.id}`, {
       method: 'DELETE',
     });
+    if (!res.ok) {
+      return;
+    }
+    setTranscript('');
+    setHasNarration(false);
   }
 
   async function handleRetryTranscription() {
@@ -109,6 +117,8 @@ export function EntryEditor({ entry, backHref }: EntryEditorProps) {
       method: 'POST',
       body: formData,
     });
+    setHasNarration(true);
+    setNarrationKey(Date.now().toString());
   }
 
   async function triggerTranscription() {
@@ -190,13 +200,17 @@ export function EntryEditor({ entry, backHref }: EntryEditorProps) {
           <h3 className="text-lg font-medium text-gray-200 mb-3">Narration</h3>
 
           {/* Audio Player */}
-          <div className="mb-3">
-            <audio
-              src={`/api/narration/${entry.id}`}
-              controls
-              className="w-full"
-            />
-          </div>
+          {hasNarration && (
+            <div className="mb-3">
+              <audio
+                key={narrationKey}
+                src={`/api/narration/${entry.id}${narrationKey ? `?t=${narrationKey}` : ''}`}
+                controls
+                className="w-full"
+                onError={() => setHasNarration(false)}
+              />
+            </div>
+          )}
 
           {/* Recording Controls */}
           <div className="flex flex-wrap gap-2 mb-3">
