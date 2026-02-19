@@ -18,6 +18,12 @@ const schemaPath = path.join(process.cwd(), 'src/lib/db/schema.sql');
 const schema = fs.readFileSync(schemaPath, 'utf-8');
 db.exec(schema);
 
+// Migrations for existing databases
+const columns = db.prepare("PRAGMA table_info(entries)").all() as { name: string }[];
+if (!columns.some(c => c.name === 'has_narration')) {
+  db.exec('ALTER TABLE entries ADD COLUMN has_narration INTEGER DEFAULT 0');
+}
+
 export default db;
 
 export interface Entry {
@@ -27,6 +33,7 @@ export interface Entry {
   transcript: string | null;
   position: number | null;
   disabled: number;
+  has_narration: number;
   created_at: string;
   updated_at: string;
 }

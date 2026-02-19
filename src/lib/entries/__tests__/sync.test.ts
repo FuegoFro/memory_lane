@@ -116,6 +116,47 @@ describe('syncFromDropbox', () => {
     });
   });
 
+  it('sets has_narration when creating new entry with narration', async () => {
+    mockListMediaFiles.mockResolvedValue([
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true },
+    ]);
+
+    await syncFromDropbox();
+
+    const entry = getEntryByPath('/photo.jpg');
+    expect(entry?.has_narration).toBe(1);
+  });
+
+  it('reconciles has_narration for existing entry when Dropbox narration is added', async () => {
+    const existing = createEntry('/photo.jpg');
+    expect(existing.has_narration).toBe(0);
+
+    mockListMediaFiles.mockResolvedValue([
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true },
+    ]);
+
+    await syncFromDropbox();
+
+    const entry = getEntryByPath('/photo.jpg');
+    expect(entry?.has_narration).toBe(1);
+  });
+
+  it('reconciles has_narration for existing entry when Dropbox narration is removed', async () => {
+    const existing = createEntry('/photo.jpg');
+    // Simulate entry that previously had a narration
+    existing.has_narration = 1;
+    db.prepare('UPDATE entries SET has_narration = 1 WHERE id = ?').run(existing.id);
+
+    mockListMediaFiles.mockResolvedValue([
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false },
+    ]);
+
+    await syncFromDropbox();
+
+    const entry = getEntryByPath('/photo.jpg');
+    expect(entry?.has_narration).toBe(0);
+  });
+
   it('handles empty database with files in Dropbox', async () => {
     mockListMediaFiles.mockResolvedValue([
       { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false },

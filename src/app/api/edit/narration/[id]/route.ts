@@ -31,6 +31,7 @@ export async function POST(
     const buffer = Buffer.from(arrayBuffer);
 
     await uploadNarration(entry.dropbox_path, buffer);
+    updateEntry(id, { has_narration: true });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -58,7 +59,7 @@ export async function DELETE(
     }
 
     await deleteNarration(entry.dropbox_path);
-    updateEntry(id, { transcript: null });
+    updateEntry(id, { transcript: null, has_narration: false });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { listMediaFiles } from '@/lib/dropbox';
-import { createEntry, getAllEntries } from './repository';
+import { createEntry, getAllEntries, updateEntry, getEntryByPath } from './repository';
 
 export interface SyncResult {
   added: number;
@@ -18,12 +18,19 @@ export async function syncFromDropbox(): Promise<SyncResult> {
   let removed = 0;
   let unchanged = 0;
 
-  // Add new files
+  // Add new files and sync narration status for existing ones
   for (const file of dropboxFiles) {
     if (!existingPaths.has(file.path)) {
-      createEntry(file.path);
+      const entry = createEntry(file.path);
+      if (file.hasNarration) {
+        updateEntry(entry.id, { has_narration: true });
+      }
       added++;
     } else {
+      const entry = getEntryByPath(file.path);
+      if (entry && !!entry.has_narration !== file.hasNarration) {
+        updateEntry(entry.id, { has_narration: file.hasNarration });
+      }
       unchanged++;
     }
   }

@@ -32,6 +32,7 @@ const createImageEntry = (): Entry => ({
   transcript: 'This is a test transcript',
   position: 1,
   disabled: 0,
+  has_narration: 0,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 });
@@ -43,6 +44,7 @@ const createVideoEntry = (): Entry => ({
   transcript: null,
   position: null,
   disabled: 0,
+  has_narration: 0,
   created_at: '2024-01-02T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
 });
@@ -54,6 +56,7 @@ const createDisabledEntry = (): Entry => ({
   transcript: null,
   position: 2,
   disabled: 1,
+  has_narration: 0,
   created_at: '2024-01-03T00:00:00Z',
   updated_at: '2024-01-03T00:00:00Z',
 });
@@ -436,7 +439,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: () => Promise.resolve({ error: 'Delete failed' }) });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       expect(transcriptTextarea).toHaveValue('This is a test transcript');
@@ -460,7 +463,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       // Verify transcript has initial value
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
@@ -479,7 +482,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       // Audio player is initially visible
       expect(document.querySelector('audio')).toBeInTheDocument();
@@ -650,7 +653,7 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload narration
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) }); // transcription
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       // Grab a reference to the original audio element
       const originalAudio = document.querySelector('audio');
@@ -687,7 +690,7 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload narration
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) }); // transcription
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       // Simulate audio error to hide the player
       const audio = document.querySelector('audio');

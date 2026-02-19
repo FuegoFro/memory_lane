@@ -5,6 +5,7 @@ export interface Entry {
   transcript: string | null;
   position: number | null;
   disabled: number;
+  has_narration: number;
   created_at: string;
   updated_at: string;
 }

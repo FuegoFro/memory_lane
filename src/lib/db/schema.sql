@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS entries (
   position INTEGER,
   disabled INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  updated_at TEXT DEFAULT (datetime('now')),
+  has_narration INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS settings (

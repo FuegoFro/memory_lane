@@ -37,6 +37,7 @@ describe('GET /api/edit/entries/[id]', () => {
       transcript: 'A test transcript',
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -99,6 +100,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -124,6 +126,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -149,6 +152,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: null, // staging entry
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -175,6 +179,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: 2, // already has position
       disabled: 1, // but was disabled
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -200,6 +205,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: 2, // active entry
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -224,6 +230,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       transcript: null,
       position: 2,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };

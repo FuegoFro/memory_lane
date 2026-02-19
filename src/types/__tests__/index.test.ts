@@ -9,6 +9,7 @@ describe('getEntryStatus', () => {
     transcript: null,
     position: 1,
     disabled: 0,
+    has_narration: 0,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   };

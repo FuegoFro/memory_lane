@@ -42,6 +42,7 @@ describe('GET /api/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -67,6 +68,7 @@ describe('GET /api/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -100,6 +102,7 @@ describe('GET /api/narration/[id]', () => {
       transcript: null,
       position: null,
       disabled: 1,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -122,6 +125,7 @@ describe('GET /api/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };

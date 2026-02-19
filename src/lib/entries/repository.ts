@@ -69,6 +69,7 @@ export function updateEntry(
     transcript?: string | null;
     position?: number | null;
     disabled?: boolean;
+    has_narration?: boolean;
   }
 ): Entry | undefined {
   const fields: string[] = [];
@@ -89,6 +90,10 @@ export function updateEntry(
   if ('disabled' in updates) {
     fields.push('disabled = ?');
     values.push(updates.disabled ? 1 : 0);
+  }
+  if ('has_narration' in updates) {
+    fields.push('has_narration = ?');
+    values.push(updates.has_narration ? 1 : 0);
   }
 
   if (fields.length === 0) return getEntryById(id);

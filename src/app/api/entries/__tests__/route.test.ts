@@ -31,6 +31,7 @@ describe('GET /api/entries', () => {
         transcript: null,
         position: 0,
         disabled: 0,
+        has_narration: 0,
         created_at: '2024-01-01 10:00:00',
         updated_at: '2024-01-01 10:00:00',
       },
@@ -41,6 +42,7 @@ describe('GET /api/entries', () => {
         transcript: 'A memory',
         position: 1,
         disabled: 0,
+        has_narration: 0,
         created_at: '2024-01-01 11:00:00',
         updated_at: '2024-01-01 11:00:00',
       },
@@ -97,6 +99,7 @@ describe('GET /api/entries/[id]', () => {
       transcript: 'A test transcript',
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -130,6 +133,7 @@ describe('GET /api/entries/[id]', () => {
       transcript: null,
       position: null,
       disabled: 1, // Entry is disabled
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };

@@ -49,6 +49,7 @@ describe('POST /api/edit/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -65,6 +66,7 @@ describe('POST /api/edit/narration/[id]', () => {
     expect(body.success).toBe(true);
     expect(mockGetEntryById).toHaveBeenCalledWith('entry-1');
     expect(mockUploadNarration).toHaveBeenCalledWith('/photos/test.jpg', expect.any(Buffer));
+    expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { has_narration: true });
   });
 
   it('returns 404 for non-existent entry', async () => {
@@ -88,6 +90,7 @@ describe('POST /api/edit/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -109,6 +112,7 @@ describe('POST /api/edit/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -145,6 +149,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -169,6 +174,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       transcript: 'Some existing transcript',
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };
@@ -178,7 +184,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
     const request = createMockRequest('entry-1');
     await DELETE(request, { params: Promise.resolve({ id: 'entry-1' }) });
 
-    expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { transcript: null });
+    expect(mockUpdateEntry).toHaveBeenCalledWith('entry-1', { transcript: null, has_narration: false });
   });
 
   it('returns 404 for non-existent entry', async () => {
@@ -200,6 +206,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       transcript: null,
       position: 0,
       disabled: 0,
+      has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
     };

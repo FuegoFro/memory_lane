@@ -11,7 +11,7 @@ interface EntryEditorProps {
   hasNarration?: boolean;
 }
 
-export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = true }: EntryEditorProps) {
+export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = false }: EntryEditorProps) {
   const router = useRouter();
   const backUrl = backHref || '/edit';
 
