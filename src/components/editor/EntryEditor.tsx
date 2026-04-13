@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
@@ -18,7 +18,7 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   const [title, setTitle] = useState(entry.title || '');
   const [transcript, setTranscript] = useState(entry.transcript || '');
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [hasNarration, setHasNarration] = useState(initialHasNarration);
@@ -29,23 +29,53 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
 
   const isVideo = isVideoFile(entry.dropbox_path);
 
-  async function handleSave() {
-    setSaving(true);
+  const pendingSaveRef = useRef<{ title: string, transcript: string, status: EntryStatus } | null>(null);
+
+  const saveNow = useCallback(async (payload: { title: string, transcript: string, status: EntryStatus } | null) => {
+    if (!payload) return;
     try {
       await fetch(`/api/edit/entries/${entry.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, transcript, status }),
+        body: JSON.stringify(payload),
+        keepalive: true,
       });
-      router.push(backUrl);
-    } finally {
-      setSaving(false);
+      if (pendingSaveRef.current === payload) {
+        pendingSaveRef.current = null;
+        setSaveStatus('saved');
+        setTimeout(() => {
+          setSaveStatus((current) => current === 'saved' ? 'idle' : current);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save:', err);
     }
-  }
+  }, [entry.id]);
 
-  function handleCancel() {
-    router.push(backUrl);
-  }
+  useEffect(() => {
+    const isChanged = title !== (entry.title || '') ||
+      transcript !== (entry.transcript || '') ||
+      status !== getEntryStatus(entry);
+
+    if (!isChanged && pendingSaveRef.current === null) return;
+
+    pendingSaveRef.current = { title, transcript, status };
+    setSaveStatus('saving');
+
+    const timer = setTimeout(() => {
+      saveNow(pendingSaveRef.current);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [title, transcript, status, entry, saveNow]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingSaveRef.current) {
+        saveNow(pendingSaveRef.current);
+      }
+    };
+  }, [saveNow]);
 
   async function handleDeleteNarration() {
     if (!confirm('Are you sure you want to delete the narration?')) {
@@ -138,13 +168,6 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Link
-        href={backUrl}
-        className="inline-flex items-center text-gray-400 hover:text-white transition-colors mb-4"
-      >
-        ← Back to grid
-      </Link>
-
       {/* Media Preview */}
       <div className="mb-6">
         {isVideo ? (
@@ -216,11 +239,10 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
           <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={recording ? stopRecording : startRecording}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                recording
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${recording
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
             >
               {recording ? 'Stop Recording' : 'Record'}
             </button>
@@ -235,11 +257,10 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
             <button
               onClick={handleRetryTranscription}
               disabled={transcribing}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                transcribing
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${transcribing
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
             >
               {transcribing ? 'Transcribing...' : 'Retry Transcription'}
             </button>
@@ -261,26 +282,10 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-4 mt-6">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-            saving
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-
-        <button
-          onClick={handleCancel}
-          className="px-6 py-2 bg-gray-700 text-gray-300 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-        >
-          Cancel
-        </button>
+      {/* Save Status Indicator */}
+      <div className="flex justify-end mt-4 h-8 items-center">
+        {saveStatus === 'saving' && <span className="text-gray-400 text-sm font-medium animate-pulse">Saving...</span>}
+        {saveStatus === 'saved' && <span className="text-green-500 text-sm font-medium">✓ Saved</span>}
       </div>
     </div>
   );

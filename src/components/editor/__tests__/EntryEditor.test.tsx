@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EntryEditor } from '../EntryEditor';
@@ -262,133 +262,147 @@ describe('EntryEditor', () => {
     });
   });
 
-  describe('Save action', () => {
-    it('renders save button', () => {
+  describe('Autosave behavior', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows no save indicator initially when there are no changes', () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
 
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      expect(saveButton).toBeInTheDocument();
+      expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+      expect(screen.queryByText('✓ Saved')).not.toBeInTheDocument();
     });
 
-    it('calls API and navigates on save', async () => {
+    it('shows "Saving..." immediately when a field changes', async () => {
       const entry = createImageEntry();
-      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
-
-      render(<EntryEditor entry={entry} backHref="/edit?stage=active" />);
-
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/entry-1', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: 'Test Photo',
-            transcript: 'This is a test transcript',
-            status: 'active',
-          }),
-        });
-      });
-
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/edit?stage=active');
-      });
-    });
-
-    it('saves updated values when fields are changed', async () => {
-      const entry = createImageEntry();
-      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
-
       render(<EntryEditor entry={entry} />);
 
-      // Change values
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
+      });
+
+      expect(screen.getByText('Saving...')).toBeInTheDocument();
+    });
+
+    it('does not call API before the debounce period', async () => {
+      const entry = createImageEntry();
+      render(<EntryEditor entry={entry} />);
+
+      fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
+
+      await act(async () => {
+        vi.advanceTimersByTime(999);
+      });
+
+      expect(mockFetch).not.toHaveBeenCalledWith(
+        `/api/edit/entries/${entry.id}`,
+        expect.objectContaining({ method: 'PUT' })
+      );
+    });
+
+    it('calls API with correct payload after 1-second debounce', async () => {
+      const entry = createImageEntry();
+      render(<EntryEditor entry={entry} />);
+
+      fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(`/api/edit/entries/${entry.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Title', transcript: 'This is a test transcript', status: 'active' }),
+        keepalive: true,
+      });
+    });
+
+    it('saves all changed fields together', async () => {
+      const entry = createImageEntry();
+      render(<EntryEditor entry={entry} />);
+
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Updated Title' } });
       fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'Updated transcript' } });
       fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'disabled' } });
 
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/entry-1', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: 'Updated Title',
-            transcript: 'Updated transcript',
-            status: 'disabled',
-          }),
-        });
+      expect(mockFetch).toHaveBeenCalledWith(`/api/edit/entries/${entry.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Updated Title', transcript: 'Updated transcript', status: 'disabled' }),
+        keepalive: true,
       });
     });
 
-    it('disables save button while saving', async () => {
+    it('debounces rapid changes — only saves the last value', async () => {
       const entry = createImageEntry();
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
       render(<EntryEditor entry={entry} />);
 
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
+      const titleInput = screen.getByLabelText(/title/i);
+      fireEvent.change(titleInput, { target: { value: 'First' } });
+      fireEvent.change(titleInput, { target: { value: 'Second' } });
+      fireEvent.change(titleInput, { target: { value: 'Third' } });
 
-      await waitFor(() => {
-        expect(saveButton).toBeDisabled();
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
       });
+
+      const putCalls = mockFetch.mock.calls.filter(
+        ([, opts]) => opts?.method === 'PUT'
+      );
+      expect(putCalls).toHaveLength(1);
+      expect(JSON.parse(putCalls[0][1].body).title).toBe('Third');
     });
 
-    it('shows saving state on button', async () => {
+    it('shows "✓ Saved" after successful save', async () => {
       const entry = createImageEntry();
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
       render(<EntryEditor entry={entry} />);
 
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /saving/i })).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
       });
-    });
-  });
 
-  describe('Cancel action', () => {
-    it('renders cancel button', () => {
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        // Let the mocked fetch promise resolve and React flush state update
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(screen.getByText('✓ Saved')).toBeInTheDocument();
+    });
+
+    it('"✓ Saved" clears after 2 seconds', async () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
 
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      expect(cancelButton).toBeInTheDocument();
-    });
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
+      });
 
-    it('navigates back on cancel', () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} backHref="/edit?stage=staging" />);
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
 
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      fireEvent.click(cancelButton);
+      expect(screen.getByText('✓ Saved')).toBeInTheDocument();
 
-      expect(mockPush).toHaveBeenCalledWith('/edit?stage=staging');
-    });
-  });
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
 
-  describe('Back button', () => {
-    it('renders a back link', () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} backHref="/edit?stage=active" />);
-
-      const backLink = screen.getByRole('link', { name: /back to grid/i });
-      expect(backLink).toBeInTheDocument();
-      expect(backLink).toHaveAttribute('href', '/edit?stage=active');
-    });
-
-    it('defaults back link to /edit when no backHref provided', () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-
-      const backLink = screen.getByRole('link', { name: /back to grid/i });
-      expect(backLink).toHaveAttribute('href', '/edit');
+      expect(screen.queryByText('✓ Saved')).not.toBeInTheDocument();
     });
   });
 
