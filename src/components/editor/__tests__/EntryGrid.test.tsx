@@ -114,12 +114,20 @@ describe('EntryGrid', () => {
       render(<EntryGrid initialEntries={entries} />);
 
       const links = screen.getAllByRole('link');
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1?from=active')).toBe(true);
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2?from=active')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1?from=all')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2?from=all')).toBe(true);
     });
   });
 
   describe('Filter buttons', () => {
+    it('renders "All" as the first filter button', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      const buttons = screen.getAllByRole('button', { name: /^(All|Active|Staging|Disabled)$/i });
+      expect(buttons[0]).toHaveTextContent('All');
+    });
+
     it('renders filter buttons for all statuses', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
@@ -130,17 +138,14 @@ describe('EntryGrid', () => {
       expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument();
     });
 
-    it('filters to show only active entries by default', () => {
+    it('shows all entries by default (no stage param)', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
-      // Active entries should be visible
       expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
       expect(screen.getByText('Active Entry 2')).toBeInTheDocument();
-
-      // Staging and disabled entries should not be visible
-      expect(screen.queryByText('Staging Entry')).not.toBeInTheDocument();
-      expect(screen.queryByText('Disabled Entry')).not.toBeInTheDocument();
+      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
+      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
     });
 
     it('reads stage filter from URL search params', () => {
@@ -152,14 +157,15 @@ describe('EntryGrid', () => {
       expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
     });
 
-    it('falls back to active for invalid stage param', () => {
+    it('falls back to all for invalid stage param', () => {
       mockSearchParams = new URLSearchParams('stage=garbage');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
-      // Should fall back to active
+      // Should fall back to all
       expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
-      expect(screen.queryByText('Staging Entry')).not.toBeInTheDocument();
+      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
+      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
     });
 
     it('clicking staging filter updates URL and shows staging entries', () => {
@@ -178,6 +184,16 @@ describe('EntryGrid', () => {
       fireEvent.click(screen.getByRole('button', { name: /disabled/i }));
 
       expect(mockReplace).toHaveBeenCalledWith('/edit?stage=disabled');
+    });
+
+    it('shows all entries by default when no stage param is set', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
+      expect(screen.getByText('Active Entry 2')).toBeInTheDocument();
+      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
+      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
     });
 
     it('shows all entries when stage=all in URL', () => {
@@ -203,12 +219,12 @@ describe('EntryGrid', () => {
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
-      const activeButton = screen.getByRole('button', { name: /active/i });
-      const stagingButton = screen.getByRole('button', { name: /staging/i });
+      const allButton = screen.getByRole('button', { name: /^all$/i });
+      const activeButton = screen.getByRole('button', { name: /^active$/i });
 
-      // Active button should be selected by default
-      expect(activeButton).toHaveClass('bg-blue-600');
-      expect(stagingButton).not.toHaveClass('bg-blue-600');
+      // All button should be selected by default
+      expect(allButton).toHaveClass('bg-blue-600');
+      expect(activeButton).not.toHaveClass('bg-blue-600');
     });
   });
 
@@ -379,10 +395,10 @@ describe('EntryGrid', () => {
 
   describe('Status badges', () => {
     it('shows green badge for active entries', () => {
+      mockSearchParams = new URLSearchParams('stage=active');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 
-      // Active filter is default, should show active entries with green badge
       const badges = screen.getAllByTestId('status-badge');
       badges.forEach((badge) => {
         expect(badge).toHaveClass('bg-green-500');
@@ -429,7 +445,7 @@ describe('EntryGrid', () => {
       render(<EntryGrid initialEntries={entries} />);
 
       const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes).toHaveLength(2); // 2 active entries shown by default
+      expect(checkboxes).toHaveLength(4); // all 4 entries shown by default
     });
 
     it('clicking checkbox selects an entry without navigating', () => {
@@ -512,12 +528,13 @@ describe('EntryGrid', () => {
       fireEvent.click(screen.getByRole('button', { name: /select all/i }));
 
       checkboxes.forEach((cb) => expect(cb).toBeChecked());
-      expect(screen.getByText('2 selected')).toBeInTheDocument();
+      expect(screen.getByText('4 selected')).toBeInTheDocument();
     });
   });
 
   describe('Floating action bar', () => {
     it('shows context-appropriate move buttons for active filter', () => {
+      mockSearchParams = new URLSearchParams('stage=active');
       const entries = createTestEntries();
       render(<EntryGrid initialEntries={entries} />);
 

@@ -16,7 +16,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   const stageParam = searchParams.get('stage');
   const filter: EntryStatus | 'all' = stageParam && validStages.has(stageParam)
     ? (stageParam as EntryStatus | 'all')
-    : 'active';
+    : 'all';
 
   const [entries, setEntries] = useState(initialEntries);
   const [thumbnailSize, setThumbnailSize] = useState(200);
@@ -128,10 +128,10 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   }
 
   const filterOptions: Array<{ value: EntryStatus | 'all'; label: string }> = [
+    { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
     { value: 'staging', label: 'Staging' },
     { value: 'disabled', label: 'Disabled' },
-    { value: 'all', label: 'All' },
   ];
 
   const moveButtons: Array<{ label: string; status: EntryStatus }> = [];
@@ -245,11 +245,11 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={(e) => {
+                    onChange={(e) => e.stopPropagation()}
+                    onClick={(e) => {
                       e.stopPropagation();
-                      toggleSelection(entry.id, (e.nativeEvent as MouseEvent).shiftKey ?? false);
+                      toggleSelection(entry.id, e.shiftKey);
                     }}
-                    onClick={(e) => e.stopPropagation()}
                     className="w-5 h-5 rounded cursor-pointer accent-blue-500"
                   />
                 </div>
