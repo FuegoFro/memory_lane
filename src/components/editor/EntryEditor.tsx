@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 
 interface EntryEditorProps {
   entry: Entry;
@@ -203,19 +204,19 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
 
         {/* Status */}
         <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">
+          <label id="status-label" className="block text-sm font-medium text-gray-300 mb-1">
             Status
           </label>
-          <select
-            id="status"
+          <SegmentedControl<EntryStatus>
+            options={[
+              { value: 'staging', label: 'Staging' },
+              { value: 'active', label: 'Active' },
+              { value: 'disabled', label: 'Disabled' },
+            ]}
             value={status}
-            onChange={(e) => setStatus(e.target.value as EntryStatus)}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="active">Active</option>
-            <option value="staging">Staging</option>
-            <option value="disabled">Disabled</option>
-          </select>
+            onChange={setStatus}
+            aria-labelledby="status-label"
+          />
         </div>
 
         {/* Narration Section */}

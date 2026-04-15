@@ -122,38 +122,30 @@ describe('EntryEditor', () => {
       expect(titleInput).toHaveValue('');
     });
 
-    it('renders status dropdown with correct value for active entry', () => {
+    it('renders status control with active selected for active entry', () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
-
-      const statusSelect = screen.getByLabelText(/status/i);
-      expect(statusSelect).toBeInTheDocument();
-      expect(statusSelect).toHaveValue('active');
+      expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('renders status dropdown with staging for entry without position', () => {
+    it('renders status control with staging selected for entry without position', () => {
       const entry = createVideoEntry();
       render(<EntryEditor entry={entry} />);
-
-      const statusSelect = screen.getByLabelText(/status/i);
-      expect(statusSelect).toHaveValue('staging');
+      expect(screen.getByRole('button', { name: 'Staging' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('renders status dropdown with disabled for disabled entry', () => {
+    it('renders status control with disabled selected for disabled entry', () => {
       const entry = createDisabledEntry();
       render(<EntryEditor entry={entry} />);
-
-      const statusSelect = screen.getByLabelText(/status/i);
-      expect(statusSelect).toHaveValue('disabled');
+      expect(screen.getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('renders all status options in dropdown', () => {
+    it('renders all status options', () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
-
-      expect(screen.getByRole('option', { name: /active/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /staging/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /disabled/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Staging' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Disabled' })).toBeInTheDocument();
     });
 
     it('renders transcript textarea with entry transcript', () => {
@@ -196,11 +188,9 @@ describe('EntryEditor', () => {
     it('allows changing the status', () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
-
-      const statusSelect = screen.getByLabelText(/status/i);
-      fireEvent.change(statusSelect, { target: { value: 'disabled' } });
-
-      expect(statusSelect).toHaveValue('disabled');
+      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
+      expect(screen.getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'false');
     });
   });
 
@@ -330,7 +320,7 @@ describe('EntryEditor', () => {
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Updated Title' } });
       fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'Updated transcript' } });
-      fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'disabled' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
 
       await act(async () => {
         vi.advanceTimersByTime(1000);
