@@ -75,7 +75,7 @@ function SortableCard({ entry, filter, isSelected, hasSelection, onToggleSelecti
         />
       </div>
 
-      <Link href={`/edit/${entry.id}?from=${filter}`} className="block">
+      <Link href={`/edit/${entry.id}?stage=${filter}`} className="block">
         <img
           src={`/api/media/${entry.id}`}
           alt={entry.title || 'Entry thumbnail'}
@@ -398,7 +398,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                       />
                     </div>
 
-                    <Link href={`/edit/${entry.id}?from=${filter}`} className="block">
+                    <Link href={`/edit/${entry.id}?stage=${filter}`} className="block">
                       <img
                         src={`/api/media/${entry.id}`}
                         alt={entry.title || 'Entry thumbnail'}

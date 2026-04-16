@@ -7,19 +7,19 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ stage?: string }>;
 }
 
 export default async function EditEntryModal({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { from } = await searchParams;
+  const { stage } = await searchParams;
   const entry = getEntryById(id);
 
   if (!entry) {
     notFound();
   }
 
-  const backHref = from ? `/edit?stage=${from}` : '/edit';
+  const backHref = stage ? `/edit?stage=${stage}` : '/edit';
 
   return (
     <Modal closeHref={backHref}>
