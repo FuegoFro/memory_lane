@@ -421,7 +421,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockConfirm.mockReturnValue(false);
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const deleteButton = screen.getByRole('button', { name: /delete narration/i });
       fireEvent.click(deleteButton);
@@ -433,7 +433,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockConfirm.mockReturnValue(false);
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const deleteButton = screen.getByRole('button', { name: /delete narration/i });
       fireEvent.click(deleteButton);
@@ -446,7 +446,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const deleteButton = screen.getByRole('button', { name: /delete narration/i });
       fireEvent.click(deleteButton);
@@ -528,7 +528,7 @@ describe('EntryEditor', () => {
         json: () => Promise.resolve({ transcript: 'New transcribed text' }),
       });
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const retryButton = screen.getByRole('button', { name: /retry transcription/i });
       fireEvent.click(retryButton);
@@ -549,7 +549,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const retryButton = screen.getByRole('button', { name: /retry transcription/i });
       fireEvent.click(retryButton);
@@ -563,7 +563,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-      render(<EntryEditor entry={entry} />);
+      render(<EntryEditor entry={entry} hasNarration={true} />);
 
       const retryButton = screen.getByRole('button', { name: /retry transcription/i });
       fireEvent.click(retryButton);

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 
+type NarrationState = 'noNarration' | 'hasNarration' | 'recording' | 'uploading' | 'transcribing';
+
 interface EntryEditorProps {
   entry: Entry;
   backHref?: string;
@@ -20,9 +22,9 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   const [transcript, setTranscript] = useState(entry.transcript || '');
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const [hasNarration, setHasNarration] = useState(initialHasNarration);
+  const [narrationState, setNarrationState] = useState<NarrationState>(
+    initialHasNarration ? 'hasNarration' : 'noNarration'
+  );
   const [narrationKey, setNarrationKey] = useState('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -89,11 +91,11 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
       return;
     }
     setTranscript('');
-    setHasNarration(false);
+    setNarrationState('noNarration');
   }
 
   async function handleRetryTranscription() {
-    setTranscribing(true);
+    setNarrationState('transcribing');
     try {
       const res = await fetch(`/api/edit/transcribe/${entry.id}`, {
         method: 'POST',
@@ -103,7 +105,7 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
         setTranscript(data.transcript);
       }
     } finally {
-      setTranscribing(false);
+      setNarrationState('hasNarration');
     }
   }
 
@@ -123,12 +125,15 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
       mediaRecorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach((track) => track.stop());
+        setNarrationState('uploading');
         await uploadNarration(blob);
+        setNarrationState('transcribing');
         await triggerTranscription();
+        setNarrationState('hasNarration');
       };
 
       mediaRecorder.start();
-      setRecording(true);
+      setNarrationState('recording');
     } catch (err) {
       console.error('Failed to start recording:', err);
     }
@@ -137,7 +142,6 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   function stopRecording() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      setRecording(false);
     }
   }
 
@@ -148,22 +152,16 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
       method: 'POST',
       body: formData,
     });
-    setHasNarration(true);
     setNarrationKey(Date.now().toString());
   }
 
   async function triggerTranscription() {
-    setTranscribing(true);
-    try {
-      const res = await fetch(`/api/edit/transcribe/${entry.id}`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (data.transcript) {
-        setTranscript(data.transcript);
-      }
-    } finally {
-      setTranscribing(false);
+    const res = await fetch(`/api/edit/transcribe/${entry.id}`, {
+      method: 'POST',
+    });
+    const data = await res.json();
+    if (data.transcript) {
+      setTranscript(data.transcript);
     }
   }
 
@@ -224,14 +222,14 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
           <h3 className="text-lg font-medium text-gray-200 mb-3">Narration</h3>
 
           {/* Audio Player */}
-          {hasNarration && (
+          {(narrationState === 'hasNarration' || narrationState === 'transcribing') && (
             <div className="mb-3">
               <audio
                 key={narrationKey}
                 src={`/api/narration/${entry.id}${narrationKey ? `?t=${narrationKey}` : ''}`}
                 controls
                 className="w-full"
-                onError={() => setHasNarration(false)}
+                onError={() => setNarrationState('noNarration')}
               />
             </div>
           )}
@@ -239,31 +237,45 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
           {/* Recording Controls */}
           <div className="flex flex-wrap gap-2 mb-3">
             <button
-              onClick={recording ? stopRecording : startRecording}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${recording
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+              onClick={narrationState === 'recording' ? stopRecording : startRecording}
+              disabled={narrationState === 'uploading' || narrationState === 'transcribing'}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                narrationState === 'recording'
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : narrationState === 'uploading' || narrationState === 'transcribing'
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              {recording ? 'Stop Recording' : 'Record'}
+              {narrationState === 'recording'
+                ? 'Stop Recording'
+                : narrationState === 'uploading'
+                ? 'Uploading…'
+                : 'Record'}
             </button>
 
             <button
               onClick={handleDeleteNarration}
-              className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+              disabled={narrationState !== 'hasNarration'}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                narrationState !== 'hasNarration'
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
             >
               Delete Narration
             </button>
 
             <button
               onClick={handleRetryTranscription}
-              disabled={transcribing}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${transcribing
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+              disabled={narrationState !== 'hasNarration'}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                narrationState !== 'hasNarration'
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
             >
-              {transcribing ? 'Transcribing...' : 'Retry Transcription'}
+              {narrationState === 'transcribing' ? 'Transcribing...' : 'Retry Transcription'}
             </button>
           </div>
         </div>
