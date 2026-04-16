@@ -4,6 +4,100 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus } from '@/types';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+
+function getStatusBadgeColor(status: EntryStatus): string {
+  switch (status) {
+    case 'active':
+      return 'bg-green-500';
+    case 'staging':
+      return 'bg-yellow-500';
+    case 'disabled':
+      return 'bg-gray-500';
+  }
+}
+
+interface SortableCardProps {
+  entry: Entry;
+  filter: EntryStatus | 'all';
+  isSelected: boolean;
+  hasSelection: boolean;
+  onToggleSelection: (id: string, shiftKey: boolean) => void;
+}
+
+function SortableCard({ entry, filter, isSelected, hasSelection, onToggleSelection }: SortableCardProps) {
+  const status = getEntryStatus(entry);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: entry.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        transition,
+        opacity: isDragging ? 0.3 : undefined,
+      }}
+      {...attributes}
+      {...listeners}
+      className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all cursor-grab active:cursor-grabbing"
+    >
+      <div
+        className={`absolute top-2 left-2 z-10 ${
+          hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        } transition-opacity`}
+      >
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelection(entry.id, e.shiftKey);
+          }}
+          className="w-5 h-5 rounded cursor-pointer accent-blue-500"
+        />
+      </div>
+
+      <Link href={`/edit/${entry.id}?from=${filter}`} className="block">
+        <img
+          src={`/api/media/${entry.id}`}
+          alt={entry.title || 'Entry thumbnail'}
+          className="w-full aspect-square object-cover"
+        />
+        <div
+          data-testid="status-badge"
+          className={`absolute top-2 right-2 w-3 h-3 rounded-full ${getStatusBadgeColor(status)}`}
+        />
+        <div
+          data-testid="entry-overlay"
+          className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
+        >
+          <span className="text-white font-medium text-center line-clamp-2">
+            {entry.title || 'Untitled'}
+          </span>
+          <span className="text-gray-300 text-sm capitalize mt-1">{status}</span>
+        </div>
+      </Link>
+    </div>
+  );
+}
 
 interface EntryGridProps {
   initialEntries: Entry[];
@@ -14,21 +108,31 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   const searchParams = useSearchParams();
   const validStages = new Set<string>(['active', 'staging', 'disabled', 'all']);
   const stageParam = searchParams.get('stage');
-  const filter: EntryStatus | 'all' = stageParam && validStages.has(stageParam)
-    ? (stageParam as EntryStatus | 'all')
-    : 'all';
+  const filter: EntryStatus | 'all' =
+    stageParam && validStages.has(stageParam) ? (stageParam as EntryStatus | 'all') : 'all';
 
   const [entries, setEntries] = useState(initialEntries);
   const [thumbnailSize, setThumbnailSize] = useState(200);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activeId, setActiveId] = useState<string | null>(null);
   const lastSelectedRef = useRef<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
 
   const filteredEntries = entries.filter((entry) => {
     if (filter === 'all') return true;
     return getEntryStatus(entry) === filter;
   });
+
+  const activeEntryIds = filteredEntries
+    .filter((e) => getEntryStatus(e) === 'active')
+    .map((e) => e.id);
 
   async function handleSync() {
     setSyncing(true);
@@ -49,6 +153,36 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     } finally {
       setSyncing(false);
     }
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = entries.findIndex((e) => e.id === active.id);
+    const newIndex = entries.findIndex((e) => e.id === over.id);
+    const previousEntries = [...entries];
+    const newEntries = arrayMove(entries, oldIndex, newIndex);
+    setEntries(newEntries);
+
+    const orderedIds = newEntries
+      .filter((e) => getEntryStatus(e) === 'active')
+      .map((e) => e.id);
+
+    fetch('/api/edit/entries/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds }),
+    }).catch(() => {
+      setEntries(previousEntries);
+      setSyncResult('Reorder failed');
+    });
   }
 
   function toggleSelection(entryId: string, shiftKey: boolean) {
@@ -116,17 +250,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     }
   }
 
-  function getStatusBadgeColor(status: EntryStatus): string {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500';
-      case 'staging':
-        return 'bg-yellow-500';
-      case 'disabled':
-        return 'bg-gray-500';
-    }
-  }
-
   const filterOptions: Array<{ value: EntryStatus | 'all'; label: string }> = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
@@ -139,11 +262,12 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   if (filter !== 'staging') moveButtons.push({ label: 'Move to Staging', status: 'staging' });
   if (filter !== 'disabled') moveButtons.push({ label: 'Disable', status: 'disabled' });
 
+  const activeEntry = activeId ? entries.find((e) => e.id === activeId) : null;
+
   return (
     <div className="p-4">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-4 items-center mb-6">
-        {/* Filter buttons */}
         <div className="flex gap-2">
           {filterOptions.map((option) => (
             <button
@@ -160,7 +284,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           ))}
         </div>
 
-        {/* Select all / Clear selection */}
         {selectedIds.size > 0 && (
           <div className="flex gap-2">
             <button
@@ -172,7 +295,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           </div>
         )}
 
-        {/* Size slider */}
         <div className="flex items-center gap-2">
           <label htmlFor="size-slider" className="text-gray-300 text-sm">
             Size:
@@ -189,7 +311,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           <span className="text-gray-400 text-sm w-12">{thumbnailSize}px</span>
         </div>
 
-        {/* Sync button */}
         <button
           onClick={handleSync}
           disabled={syncing}
@@ -202,7 +323,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           {syncing ? 'Syncing...' : 'Sync from Dropbox'}
         </button>
 
-        {/* Sync result message */}
         {syncResult && (
           <span
             className={`text-sm ${
@@ -216,86 +336,106 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
 
       {/* Grid or Empty State */}
       {filteredEntries.length === 0 ? (
-        <div className="text-center text-gray-400 py-12">
-          No entries in this category
-        </div>
+        <div className="text-center text-gray-400 py-12">No entries in this category</div>
       ) : (
-        <div
-          data-testid="entry-grid"
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))`,
-          }}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
-          {filteredEntries.map((entry) => {
-            const status = getEntryStatus(entry);
-            const isSelected = selectedIds.has(entry.id);
-            const hasSelection = selectedIds.size > 0;
-            return (
-              <div
-                key={entry.id}
-                className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all"
-              >
-                {/* Checkbox */}
-                <div
-                  className={`absolute top-2 left-2 z-10 ${
-                    hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  } transition-opacity`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSelection(entry.id, e.shiftKey);
-                    }}
-                    className="w-5 h-5 rounded cursor-pointer accent-blue-500"
-                  />
-                </div>
+          <SortableContext items={activeEntryIds} strategy={rectSortingStrategy}>
+            <div
+              data-testid="entry-grid"
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))`,
+              }}
+            >
+              {filteredEntries.map((entry) => {
+                const status = getEntryStatus(entry);
+                const isSelected = selectedIds.has(entry.id);
+                const hasSelection = selectedIds.size > 0;
 
-                <Link
-                  href={`/edit/${entry.id}?from=${filter}`}
-                  className="block"
-                >
-                  {/* Thumbnail */}
-                  <img
-                    src={`/api/media/${entry.id}`}
-                    alt={entry.title || 'Entry thumbnail'}
-                    className="w-full aspect-square object-cover"
-                  />
+                if (status === 'active') {
+                  return (
+                    <SortableCard
+                      key={entry.id}
+                      entry={entry}
+                      filter={filter}
+                      isSelected={isSelected}
+                      hasSelection={hasSelection}
+                      onToggleSelection={toggleSelection}
+                    />
+                  );
+                }
 
-                  {/* Status badge */}
+                return (
                   <div
-                    data-testid="status-badge"
-                    className={`absolute top-2 right-2 w-3 h-3 rounded-full ${getStatusBadgeColor(status)}`}
-                  />
-
-                  {/* Hover overlay */}
-                  <div
-                    data-testid="entry-overlay"
-                    className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
+                    key={entry.id}
+                    className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all"
                   >
-                    <span className="text-white font-medium text-center line-clamp-2">
-                      {entry.title || 'Untitled'}
-                    </span>
-                    <span className="text-gray-300 text-sm capitalize mt-1">
-                      {status}
-                    </span>
+                    <div
+                      className={`absolute top-2 left-2 z-10 ${
+                        hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      } transition-opacity`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelection(entry.id, e.shiftKey);
+                        }}
+                        className="w-5 h-5 rounded cursor-pointer accent-blue-500"
+                      />
+                    </div>
+
+                    <Link href={`/edit/${entry.id}?from=${filter}`} className="block">
+                      <img
+                        src={`/api/media/${entry.id}`}
+                        alt={entry.title || 'Entry thumbnail'}
+                        className="w-full aspect-square object-cover"
+                      />
+                      <div
+                        data-testid="status-badge"
+                        className={`absolute top-2 right-2 w-3 h-3 rounded-full ${getStatusBadgeColor(status)}`}
+                      />
+                      <div
+                        data-testid="entry-overlay"
+                        className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
+                      >
+                        <span className="text-white font-medium text-center line-clamp-2">
+                          {entry.title || 'Untitled'}
+                        </span>
+                        <span className="text-gray-300 text-sm capitalize mt-1">{status}</span>
+                      </div>
+                    </Link>
                   </div>
-                </Link>
+                );
+              })}
+            </div>
+          </SortableContext>
+
+          <DragOverlay>
+            {activeEntry ? (
+              <div className="rounded-lg overflow-hidden bg-gray-800 ring-2 ring-blue-500 shadow-2xl rotate-1 opacity-95">
+                <img
+                  src={`/api/media/${activeEntry.id}`}
+                  alt={activeEntry.title || 'Entry thumbnail'}
+                  className="w-full aspect-square object-cover"
+                />
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Floating action bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl px-6 py-3 flex items-center gap-4 z-50">
-          <span className="text-white font-medium">
-            {selectedIds.size} selected
-          </span>
+          <span className="text-white font-medium">{selectedIds.size} selected</span>
 
           {moveButtons.map((btn) => (
             <button
