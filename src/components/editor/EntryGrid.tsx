@@ -190,12 +190,15 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   }
 
   function toggleSelection(entryId: string, shiftKey: boolean) {
+    const lastSelected = lastSelectedRef.current;
+    lastSelectedRef.current = entryId;
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
 
-      if (shiftKey && lastSelectedRef.current) {
+      if (shiftKey && lastSelected) {
         const ids = filteredEntries.map((e) => e.id);
-        const lastIdx = ids.indexOf(lastSelectedRef.current);
+        const lastIdx = ids.indexOf(lastSelected);
         const currentIdx = ids.indexOf(entryId);
         if (lastIdx !== -1 && currentIdx !== -1) {
           const [start, end] = [Math.min(lastIdx, currentIdx), Math.max(lastIdx, currentIdx)];
@@ -209,7 +212,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
         next.add(entryId);
       }
 
-      lastSelectedRef.current = entryId;
       return next;
     });
   }
