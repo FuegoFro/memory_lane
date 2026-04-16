@@ -250,6 +250,26 @@ describe('EntryEditor', () => {
       const retryButton = screen.getByRole('button', { name: /retry transcription/i });
       expect(retryButton).toBeInTheDocument();
     });
+
+    it('disables Delete Narration button when there is no narration', () => {
+      render(<EntryEditor entry={createImageEntry()} />);
+      expect(screen.getByRole('button', { name: /delete narration/i })).toBeDisabled();
+    });
+
+    it('disables Retry Transcription button when there is no narration', () => {
+      render(<EntryEditor entry={createImageEntry()} />);
+      expect(screen.getByRole('button', { name: /retry transcription/i })).toBeDisabled();
+    });
+
+    it('enables Delete Narration button when narration exists', () => {
+      render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
+      expect(screen.getByRole('button', { name: /delete narration/i })).not.toBeDisabled();
+    });
+
+    it('enables Retry Transcription button when narration exists', () => {
+      render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
+      expect(screen.getByRole('button', { name: /retry transcription/i })).not.toBeDisabled();
+    });
   });
 
   describe('Autosave behavior', () => {
@@ -550,6 +570,97 @@ describe('EntryEditor', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /transcribing/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Narration button states during async operations', () => {
+    let mockMediaRecorder: {
+      start: ReturnType<typeof vi.fn>;
+      stop: ReturnType<typeof vi.fn>;
+      state: string;
+      ondataavailable: ((e: { data: Blob }) => void) | null;
+      onstop: (() => void) | null;
+    };
+    let mockStream: { getTracks: ReturnType<typeof vi.fn> };
+
+    beforeEach(() => {
+      mockMediaRecorder = {
+        start: vi.fn(),
+        stop: vi.fn(),
+        state: 'inactive',
+        ondataavailable: null,
+        onstop: null,
+      };
+
+      mockMediaRecorder.start.mockImplementation(() => {
+        mockMediaRecorder.state = 'recording';
+      });
+
+      mockMediaRecorder.stop.mockImplementation(() => {
+        mockMediaRecorder.state = 'inactive';
+        if (mockMediaRecorder.ondataavailable) {
+          mockMediaRecorder.ondataavailable({ data: new Blob(['audio'], { type: 'audio/webm' }) });
+        }
+        if (mockMediaRecorder.onstop) {
+          mockMediaRecorder.onstop();
+        }
+      });
+
+      mockStream = {
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn() }]),
+      };
+
+      // @ts-expect-error - mocking browser API
+      global.MediaRecorder = function () { return mockMediaRecorder; };
+
+      Object.defineProperty(global.navigator, 'mediaDevices', {
+        value: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it('disables all buttons and shows Uploading… on Record button during upload', async () => {
+      mockFetch.mockImplementation(() => new Promise(() => {})); // upload never resolves
+
+      render(<EntryEditor entry={createImageEntry()} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+        await Promise.resolve();
+      });
+
+      expect(screen.getByRole('button', { name: /uploading/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /delete narration/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /retry transcription/i })).toBeDisabled();
+    });
+
+    it('disables Record button during transcription after upload', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true }) // upload succeeds
+        .mockImplementation(() => new Promise(() => {})); // transcription never resolves
+
+      render(<EntryEditor entry={createImageEntry()} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^record$/i })).toBeDisabled();
       });
     });
   });
