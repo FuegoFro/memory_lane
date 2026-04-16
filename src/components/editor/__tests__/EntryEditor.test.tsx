@@ -392,6 +392,31 @@ describe('EntryEditor', () => {
       expect(screen.getByText('✓ Saved')).toBeInTheDocument();
     });
 
+    it('saves when status is changed back to its initial value', async () => {
+      const entry = createImageEntry(); // starts as 'active'
+      render(<EntryEditor entry={entry} />);
+
+      // Change to 'disabled' and let it save
+      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // Change back to 'active' (the original status)
+      fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const putCalls = mockFetch.mock.calls.filter(([, opts]) => opts?.method === 'PUT');
+      expect(putCalls).toHaveLength(2);
+      expect(JSON.parse(putCalls[1][1].body).status).toBe('active');
+    });
+
     it('"✓ Saved" clears after 2 seconds', async () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
