@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EntryGrid } from '../EntryGrid';
 import { Entry } from '@/types';
@@ -26,6 +26,42 @@ vi.mock('next/link', () => ({
     children: React.ReactNode;
     href: string;
   }) => <a href={href}>{children}</a>,
+}));
+
+let capturedOnDragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
+
+vi.mock('@dnd-kit/core', () => ({
+  DndContext: ({ children, onDragEnd }: {
+    children: React.ReactNode;
+    onDragEnd: (event: { active: { id: string }; over: { id: string } | null }) => void;
+  }) => {
+    capturedOnDragEnd = onDragEnd;
+    return <>{children}</>;
+  },
+  DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children || null}</>,
+  closestCenter: vi.fn(),
+  PointerSensor: class {},
+  useSensor: vi.fn(),
+  useSensors: vi.fn(() => []),
+}));
+
+vi.mock('@dnd-kit/sortable', () => ({
+  SortableContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    transition: null,
+    isDragging: false,
+  }),
+  rectSortingStrategy: {},
+  arrayMove: (arr: unknown[], from: number, to: number) => {
+    const result = [...arr];
+    const [item] = result.splice(from, 1);
+    result.splice(to, 0, item);
+    return result;
+  },
 }));
 
 // Mock fetch
@@ -84,6 +120,7 @@ describe('EntryGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearchParams = new URLSearchParams();
+    capturedOnDragEnd = null; // add this line
   });
 
   describe('Rendering with initial entries', () => {
@@ -608,6 +645,80 @@ describe('EntryGrid', () => {
       await waitFor(() => {
         expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Drag-and-drop reordering', () => {
+    it('calls reorder API with active entry IDs in new order after drag', async () => {
+      const entries = createTestEntries();
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+
+      render(<EntryGrid initialEntries={entries} />);
+      expect(capturedOnDragEnd).not.toBeNull();
+
+      // Drag entry-1 (index 0) onto entry-2 (index 1)
+      act(() => {
+        capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-2' } });
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/reorder', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedIds: ['entry-2', 'entry-1'] }),
+        });
+      });
+    });
+
+    it('only sends active entry IDs to reorder API, excluding staging and disabled', async () => {
+      // createTestEntries has: entry-1 (active), entry-2 (active), entry-3 (staging), entry-4 (disabled)
+      const entries = createTestEntries();
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+
+      render(<EntryGrid initialEntries={entries} />);
+
+      act(() => {
+        capturedOnDragEnd!({ active: { id: 'entry-2' }, over: { id: 'entry-1' } });
+      });
+
+      await waitFor(() => {
+        const call = mockFetch.mock.calls.find((c) => c[0] === '/api/edit/entries/reorder');
+        const body = JSON.parse(call![1].body);
+        expect(body.orderedIds).toEqual(['entry-2', 'entry-1']);
+        expect(body.orderedIds).not.toContain('entry-3');
+        expect(body.orderedIds).not.toContain('entry-4');
+      });
+    });
+
+    it('does not call reorder API when dropped on the same card', () => {
+      const entries = createTestEntries();
+      render(<EntryGrid initialEntries={entries} />);
+
+      act(() => {
+        capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-1' } });
+      });
+
+      expect(mockFetch).not.toHaveBeenCalledWith('/api/edit/entries/reorder', expect.anything());
+    });
+
+    it('reverts entry order and shows error message when reorder API fails', async () => {
+      const entries = createTestEntries();
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      render(<EntryGrid initialEntries={entries} />);
+
+      act(() => {
+        capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-2' } });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Reorder failed')).toBeInTheDocument();
+      });
+
+      // Entries should be back in original order (entry-1 before entry-2)
+      const images = screen.getAllByRole('img');
+      const srcs = images.map((img) => img.getAttribute('src'));
+      expect(srcs.indexOf('/api/media/entry-1')).toBeLessThan(srcs.indexOf('/api/media/entry-2'));
     });
   });
 });
