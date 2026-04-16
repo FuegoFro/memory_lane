@@ -151,8 +151,8 @@ describe('EntryGrid', () => {
       render(<EntryGrid initialEntries={entries} />);
 
       const links = screen.getAllByRole('link');
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1?from=all')).toBe(true);
-      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2?from=all')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-1?stage=all')).toBe(true);
+      expect(links.some((link) => link.getAttribute('href') === '/edit/entry-2?stage=all')).toBe(true);
     });
   });
 
