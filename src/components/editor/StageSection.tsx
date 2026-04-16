@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { EntryStatus } from '@/types';
 
 const BADGE_COLORS: Record<EntryStatus, string> = {
@@ -20,7 +21,7 @@ interface StageSectionProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onSelectAll: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export function StageSection({
