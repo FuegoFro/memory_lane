@@ -33,7 +33,6 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   const isVideo = isVideoFile(entry.dropbox_path);
 
   const pendingSaveRef = useRef<{ title: string, transcript: string, status: EntryStatus } | null>(null);
-  const lastSavedRef = useRef({ title: entry.title || '', transcript: entry.transcript || '', status: getEntryStatus(entry) });
 
   const saveNow = useCallback(async (payload: { title: string, transcript: string, status: EntryStatus } | null) => {
     if (!payload) return;
@@ -45,7 +44,6 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
         keepalive: true,
       });
       if (pendingSaveRef.current === payload) {
-        lastSavedRef.current = payload;
         pendingSaveRef.current = null;
         setSaveStatus('saved');
         setTimeout(() => {
@@ -58,10 +56,9 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   }, [entry.id]);
 
   useEffect(() => {
-    const saved = lastSavedRef.current;
-    const isChanged = title !== saved.title ||
-      transcript !== saved.transcript ||
-      status !== saved.status;
+    const isChanged = title !== (entry.title || '') ||
+      transcript !== (entry.transcript || '') ||
+      status !== getEntryStatus(entry);
 
     if (!isChanged && pendingSaveRef.current === null) return;
 
@@ -73,7 +70,7 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [title, transcript, status, saveNow]);
+  }, [title, transcript, status, entry, saveNow]);
 
   useEffect(() => {
     return () => {
