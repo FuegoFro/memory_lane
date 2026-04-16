@@ -179,10 +179,14 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderedIds }),
-    }).catch(() => {
-      setEntries(previousEntries);
-      setSyncResult('Reorder failed');
-    });
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Reorder failed');
+      })
+      .catch(() => {
+        setEntries(previousEntries);
+        setSyncResult('Reorder failed');
+      });
   }
 
   function toggleSelection(entryId: string, shiftKey: boolean) {
