@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus } from '@/types';
 import {
   DndContext,
@@ -20,28 +19,16 @@ import {
   rectSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
+import { StageSection } from './StageSection';
 
-function getStatusBadgeColor(status: EntryStatus): string {
-  switch (status) {
-    case 'active':
-      return 'bg-green-500';
-    case 'staging':
-      return 'bg-yellow-500';
-    case 'disabled':
-      return 'bg-gray-500';
-  }
-}
-
-interface SortableCardProps {
+interface CardProps {
   entry: Entry;
-  filter: EntryStatus | 'all';
   isSelected: boolean;
   hasSelection: boolean;
   onToggleSelection: (id: string, shiftKey: boolean) => void;
 }
 
-function SortableCard({ entry, filter, isSelected, hasSelection, onToggleSelection }: SortableCardProps) {
-  const status = getEntryStatus(entry);
+function SortableCard({ entry, isSelected, hasSelection, onToggleSelection }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.id,
   });
@@ -74,16 +61,11 @@ function SortableCard({ entry, filter, isSelected, hasSelection, onToggleSelecti
           className="w-5 h-5 rounded cursor-pointer accent-blue-500"
         />
       </div>
-
-      <Link href={`/edit/${entry.id}?stage=${filter}`} className="block">
+      <Link href={`/edit/${entry.id}`} className="block">
         <img
           src={`/api/media/${entry.id}`}
           alt={entry.title || 'Entry thumbnail'}
           className="w-full aspect-square object-cover"
-        />
-        <div
-          data-testid="status-badge"
-          className={`absolute top-2 right-2 w-3 h-3 rounded-full ${getStatusBadgeColor(status)}`}
         />
         <div
           data-testid="entry-overlay"
@@ -92,7 +74,44 @@ function SortableCard({ entry, filter, isSelected, hasSelection, onToggleSelecti
           <span className="text-white font-medium text-center line-clamp-2">
             {entry.title || 'Untitled'}
           </span>
-          <span className="text-gray-300 text-sm capitalize mt-1">{status}</span>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+function StaticCard({ entry, isSelected, hasSelection, onToggleSelection }: CardProps) {
+  return (
+    <div className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
+      <div
+        className={`absolute top-2 left-2 z-10 ${
+          hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        } transition-opacity`}
+      >
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelection(entry.id, e.shiftKey);
+          }}
+          className="w-5 h-5 rounded cursor-pointer accent-blue-500"
+        />
+      </div>
+      <Link href={`/edit/${entry.id}`} className="block">
+        <img
+          src={`/api/media/${entry.id}`}
+          alt={entry.title || 'Entry thumbnail'}
+          className="w-full aspect-square object-cover"
+        />
+        <div
+          data-testid="entry-overlay"
+          className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
+        >
+          <span className="text-white font-medium text-center line-clamp-2">
+            {entry.title || 'Untitled'}
+          </span>
         </div>
       </Link>
     </div>
@@ -104,19 +123,13 @@ interface EntryGridProps {
 }
 
 export function EntryGrid({ initialEntries }: EntryGridProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const validStages = new Set<string>(['active', 'staging', 'disabled', 'all']);
-  const stageParam = searchParams.get('stage');
-  const filter: EntryStatus | 'all' =
-    stageParam && validStages.has(stageParam) ? (stageParam as EntryStatus | 'all') : 'all';
-
   const [entries, setEntries] = useState(initialEntries);
   const [thumbnailSize, setThumbnailSize] = useState(200);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState({ active: false, staging: false, disabled: false });
   const lastSelectedRef = useRef<string | null>(null);
 
   const sensors = useSensors(
@@ -125,14 +138,14 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     })
   );
 
-  const filteredEntries = entries.filter((entry) => {
-    if (filter === 'all') return true;
-    return getEntryStatus(entry) === filter;
-  });
+  const activeEntries = entries.filter((e) => getEntryStatus(e) === 'active');
+  const stagingEntries = entries.filter((e) => getEntryStatus(e) === 'staging');
+  const disabledEntries = entries.filter((e) => getEntryStatus(e) === 'disabled');
+  const activeEntryIds = activeEntries.map((e) => e.id);
 
-  const activeEntryIds = filteredEntries
-    .filter((e) => getEntryStatus(e) === 'active')
-    .map((e) => e.id);
+  function toggleCollapse(status: EntryStatus) {
+    setCollapsed((prev) => ({ ...prev, [status]: !prev[status] }));
+  }
 
   async function handleSync() {
     setSyncing(true);
@@ -189,7 +202,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       });
   }
 
-  function toggleSelection(entryId: string, shiftKey: boolean) {
+  function toggleSelection(entryId: string, shiftKey: boolean, sectionEntries: Entry[]) {
     const lastSelected = lastSelectedRef.current;
     lastSelectedRef.current = entryId;
 
@@ -197,7 +210,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       const next = new Set(prev);
 
       if (shiftKey && lastSelected) {
-        const ids = filteredEntries.map((e) => e.id);
+        const ids = sectionEntries.map((e) => e.id);
         const lastIdx = ids.indexOf(lastSelected);
         const currentIdx = ids.indexOf(entryId);
         if (lastIdx !== -1 && currentIdx !== -1) {
@@ -205,6 +218,9 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           for (let i = start; i <= end; i++) {
             next.add(ids[i]);
           }
+        } else {
+          if (next.has(entryId)) next.delete(entryId);
+          else next.add(entryId);
         }
       } else if (next.has(entryId)) {
         next.delete(entryId);
@@ -217,20 +233,20 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   }
 
   function selectAll() {
-    setSelectedIds(new Set(filteredEntries.map((e) => e.id)));
+    setSelectedIds(new Set(entries.map((e) => e.id)));
+  }
+
+  function selectAllInSection(sectionEntries: Entry[]) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      sectionEntries.forEach((e) => next.add(e.id));
+      return next;
+    });
   }
 
   function clearSelection() {
     setSelectedIds(new Set());
     lastSelectedRef.current = null;
-  }
-
-  const prevFilterRef = useRef(filter);
-  if (prevFilterRef.current !== filter) {
-    prevFilterRef.current = filter;
-    if (selectedIds.size > 0) {
-      clearSelection();
-    }
   }
 
   async function handleBulkMove(targetStatus: EntryStatus) {
@@ -245,7 +261,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           })
         )
       );
-
       const res = await fetch('/api/edit/entries');
       const data = await res.json();
       setEntries(data);
@@ -256,49 +271,31 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     }
   }
 
-  const filterOptions: Array<{ value: EntryStatus | 'all'; label: string }> = [
-    { value: 'all', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'staging', label: 'Staging' },
-    { value: 'disabled', label: 'Disabled' },
+  const moveButtons: Array<{ label: string; status: EntryStatus }> = [
+    { label: 'Move to Active', status: 'active' },
+    { label: 'Move to Staging', status: 'staging' },
+    { label: 'Disable', status: 'disabled' },
   ];
 
-  const moveButtons: Array<{ label: string; status: EntryStatus }> = [];
-  if (filter !== 'active') moveButtons.push({ label: 'Move to Active', status: 'active' });
-  if (filter !== 'staging') moveButtons.push({ label: 'Move to Staging', status: 'staging' });
-  if (filter !== 'disabled') moveButtons.push({ label: 'Disable', status: 'disabled' });
-
   const activeEntry = activeId ? entries.find((e) => e.id === activeId) : null;
+
+  const gridStyle = {
+    display: 'grid' as const,
+    gap: '1rem',
+    gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))`,
+  };
 
   return (
     <div className="p-4">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-4 items-center mb-6">
-        <div className="flex gap-2">
-          {filterOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => router.replace(`/edit?stage=${option.value}`)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === option.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
         {selectedIds.size > 0 && (
-          <div className="flex gap-2">
-            <button
-              onClick={selectAll}
-              className="px-3 py-1.5 text-sm rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
-            >
-              Select all
-            </button>
-          </div>
+          <button
+            onClick={selectAll}
+            className="px-3 py-1.5 text-sm rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+          >
+            Select all
+          </button>
         )}
 
         <div className="flex items-center gap-2">
@@ -340,103 +337,95 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
         )}
       </div>
 
-      {/* Grid or Empty State */}
-      {filteredEntries.length === 0 ? (
-        <div className="text-center text-gray-400 py-12">No entries in this category</div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+      {/* Active section — wrapped in DndContext for drag-to-reorder */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <StageSection
+          status="active"
+          count={activeEntries.length}
+          collapsed={collapsed.active}
+          onToggleCollapse={() => toggleCollapse('active')}
+          onSelectAll={() => selectAllInSection(activeEntries)}
         >
           <SortableContext items={activeEntryIds} strategy={rectSortingStrategy}>
-            <div
-              data-testid="entry-grid"
-              className="grid gap-4"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))`,
-              }}
-            >
-              {filteredEntries.map((entry) => {
-                const status = getEntryStatus(entry);
-                const isSelected = selectedIds.has(entry.id);
-                const hasSelection = selectedIds.size > 0;
-
-                if (status === 'active') {
-                  return (
-                    <SortableCard
-                      key={entry.id}
-                      entry={entry}
-                      filter={filter}
-                      isSelected={isSelected}
-                      hasSelection={hasSelection}
-                      onToggleSelection={toggleSelection}
-                    />
-                  );
-                }
-
-                return (
-                  <div
-                    key={entry.id}
-                    className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all"
-                  >
-                    <div
-                      className={`absolute top-2 left-2 z-10 ${
-                        hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      } transition-opacity`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSelection(entry.id, e.shiftKey);
-                        }}
-                        className="w-5 h-5 rounded cursor-pointer accent-blue-500"
-                      />
-                    </div>
-
-                    <Link href={`/edit/${entry.id}?stage=${filter}`} className="block">
-                      <img
-                        src={`/api/media/${entry.id}`}
-                        alt={entry.title || 'Entry thumbnail'}
-                        className="w-full aspect-square object-cover"
-                      />
-                      <div
-                        data-testid="status-badge"
-                        className={`absolute top-2 right-2 w-3 h-3 rounded-full ${getStatusBadgeColor(status)}`}
-                      />
-                      <div
-                        data-testid="entry-overlay"
-                        className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
-                      >
-                        <span className="text-white font-medium text-center line-clamp-2">
-                          {entry.title || 'Untitled'}
-                        </span>
-                        <span className="text-gray-300 text-sm capitalize mt-1">{status}</span>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+            <div data-testid="entry-grid" style={gridStyle}>
+              {activeEntries.map((entry) => (
+                <SortableCard
+                  key={entry.id}
+                  entry={entry}
+                  isSelected={selectedIds.has(entry.id)}
+                  hasSelection={selectedIds.size > 0}
+                  onToggleSelection={(id, shiftKey) =>
+                    toggleSelection(id, shiftKey, activeEntries)
+                  }
+                />
+              ))}
             </div>
           </SortableContext>
+        </StageSection>
 
-          <DragOverlay>
-            {activeEntry ? (
-              <div className="rounded-lg overflow-hidden bg-gray-800 ring-2 ring-blue-500 shadow-2xl rotate-1 opacity-95">
-                <img
-                  src={`/api/media/${activeEntry.id}`}
-                  alt={activeEntry.title || 'Entry thumbnail'}
-                  className="w-full aspect-square object-cover"
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      )}
+        <DragOverlay>
+          {activeEntry ? (
+            <div className="rounded-lg overflow-hidden bg-gray-800 ring-2 ring-blue-500 shadow-2xl rotate-1 opacity-95">
+              <img
+                src={`/api/media/${activeEntry.id}`}
+                alt={activeEntry.title || 'Entry thumbnail'}
+                className="w-full aspect-square object-cover"
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Staging section */}
+      <StageSection
+        status="staging"
+        count={stagingEntries.length}
+        collapsed={collapsed.staging}
+        onToggleCollapse={() => toggleCollapse('staging')}
+        onSelectAll={() => selectAllInSection(stagingEntries)}
+      >
+        <div style={gridStyle}>
+          {stagingEntries.map((entry) => (
+            <StaticCard
+              key={entry.id}
+              entry={entry}
+              isSelected={selectedIds.has(entry.id)}
+              hasSelection={selectedIds.size > 0}
+              onToggleSelection={(id, shiftKey) =>
+                toggleSelection(id, shiftKey, stagingEntries)
+              }
+            />
+          ))}
+        </div>
+      </StageSection>
+
+      {/* Disabled section */}
+      <StageSection
+        status="disabled"
+        count={disabledEntries.length}
+        collapsed={collapsed.disabled}
+        onToggleCollapse={() => toggleCollapse('disabled')}
+        onSelectAll={() => selectAllInSection(disabledEntries)}
+      >
+        <div style={gridStyle}>
+          {disabledEntries.map((entry) => (
+            <StaticCard
+              key={entry.id}
+              entry={entry}
+              isSelected={selectedIds.has(entry.id)}
+              hasSelection={selectedIds.size > 0}
+              onToggleSelection={(id, shiftKey) =>
+                toggleSelection(id, shiftKey, disabledEntries)
+              }
+            />
+          ))}
+        </div>
+      </StageSection>
 
       {/* Floating action bar */}
       {selectedIds.size > 0 && (
