@@ -264,10 +264,10 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       const res = await fetch('/api/edit/entries');
       const data = await res.json();
       setEntries(data);
+      clearSelection();
     } catch (error) {
       console.error('Bulk move failed:', error);
-    } finally {
-      clearSelection();
+      setSyncResult('Move failed');
     }
   }
 
