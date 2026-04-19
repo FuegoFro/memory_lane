@@ -12,9 +12,10 @@ interface EntryEditorProps {
   entry: Entry;
   backHref?: string;
   hasNarration?: boolean;
+  onEntryUpdated?: (entry: Entry) => void;
 }
 
-export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = false }: EntryEditorProps) {
+export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = false, onEntryUpdated }: EntryEditorProps) {
   const router = useRouter();
   const backUrl = backHref || '/edit';
 
@@ -38,7 +39,7 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
   const saveNow = useCallback(async (payload: { title: string, transcript: string, status: EntryStatus } | null) => {
     if (!payload) return;
     try {
-      await fetch(`/api/edit/entries/${entry.id}`, {
+      const res = await fetch(`/api/edit/entries/${entry.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -51,11 +52,19 @@ export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration
         setTimeout(() => {
           setSaveStatus((current) => current === 'saved' ? 'idle' : current);
         }, 2000);
+        if (res.ok && onEntryUpdated) {
+          try {
+            const updated = (await res.json()) as Entry;
+            onEntryUpdated(updated);
+          } catch {
+            // Response wasn't JSON — ignore, UI already showed "saved".
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to save:', err);
     }
-  }, [entry.id]);
+  }, [entry.id, onEntryUpdated]);
 
   useEffect(() => {
     const saved = lastSavedRef.current;

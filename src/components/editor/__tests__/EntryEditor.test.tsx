@@ -439,6 +439,38 @@ describe('EntryEditor', () => {
 
       expect(screen.queryByText('✓ Saved')).not.toBeInTheDocument();
     });
+
+    it('calls onEntryUpdated with the entry returned from the server', async () => {
+      const entry = createImageEntry();
+      const serverResponse: Entry = { ...entry, title: 'Renamed' };
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(serverResponse) });
+
+      const onEntryUpdated = vi.fn();
+      render(<EntryEditor entry={entry} onEntryUpdated={onEntryUpdated} />);
+
+      fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Renamed' } });
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(onEntryUpdated).toHaveBeenCalledWith(serverResponse);
+    });
+
+    it('does not call onEntryUpdated if the save fetch throws', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('network'));
+      const entry = createImageEntry();
+      const onEntryUpdated = vi.fn();
+      render(<EntryEditor entry={entry} onEntryUpdated={onEntryUpdated} />);
+
+      fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Fail' } });
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(onEntryUpdated).not.toHaveBeenCalled();
+    });
   });
 
   describe('Delete narration', () => {
