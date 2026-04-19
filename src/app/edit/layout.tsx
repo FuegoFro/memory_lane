@@ -5,10 +5,8 @@ import { useRouter } from 'next/navigation';
 
 export default function EditLayout({
   children,
-  modal,
 }: {
   children: React.ReactNode;
-  modal: React.ReactNode;
 }) {
   const router = useRouter();
 
@@ -45,7 +43,6 @@ export default function EditLayout({
       </nav>
 
       {children}
-      {modal}
     </div>
   );
 }
