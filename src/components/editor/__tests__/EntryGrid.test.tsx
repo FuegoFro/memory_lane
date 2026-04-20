@@ -8,14 +8,9 @@ import '@testing-library/jest-dom/vitest';
 import { EntryGrid } from '../EntryGrid';
 import { Entry } from '@/types';
 
-vi.mock('next/link', () => ({
-  default: ({
-    children,
-    href,
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) => <a href={href}>{children}</a>,
+// EntryEditor (rendered inside the modal) calls useRouter from next/navigation.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 let capturedOnDragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
@@ -148,16 +143,6 @@ describe('EntryGrid', () => {
       expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: /expand active section/i }));
       expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
-    });
-
-    it('renders entry links without stage query param', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const links = screen.getAllByRole('link');
-      expect(links.some((l) => l.getAttribute('href') === '/edit/entry-1')).toBe(true);
-      expect(links.some((l) => l.getAttribute('href') === '/edit/entry-3')).toBe(true);
-      links.forEach((l) => {
-        expect(l.getAttribute('href')).not.toContain('stage=');
-      });
     });
 
     it('does not render status badge dots on cards', () => {
@@ -440,6 +425,66 @@ describe('EntryGrid', () => {
       const images = screen.getAllByRole('img');
       const srcs = images.map((img) => img.getAttribute('src'));
       expect(srcs.indexOf('/api/media/entry-1')).toBeLessThan(srcs.indexOf('/api/media/entry-2'));
+    });
+  });
+
+  describe('Entry modal', () => {
+    beforeEach(() => {
+      HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      });
+      HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
+        this.removeAttribute('open');
+        this.dispatchEvent(new Event('close'));
+      });
+    });
+
+    it('opens the entry editor when a card is clicked', () => {
+      render(<EntryGrid initialEntries={createTestEntries()} />);
+      // Editor not rendered initially
+      expect(screen.queryByLabelText(/title/i)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+
+      // Editor now rendered, with the clicked entry's title in the title field
+      const titleInput = screen.getByLabelText(/title/i) as HTMLInputElement;
+      expect(titleInput).toBeInTheDocument();
+      expect(titleInput.value).toBe('Active Entry 1');
+    });
+
+    it('closes the editor when the close button is clicked', () => {
+      render(<EntryGrid initialEntries={createTestEntries()} />);
+      fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+      expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+      expect(screen.queryByLabelText(/title/i)).not.toBeInTheDocument();
+    });
+
+    it('updates the grid card when the editor reports an entry update', async () => {
+      const entries = createTestEntries();
+      const renamed = { ...entries[0], title: 'Renamed Entry' };
+      // EntryEditor reads the PUT response as the authoritative updated entry.
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(renamed) });
+      vi.useFakeTimers();
+      try {
+        render(<EntryGrid initialEntries={entries} />);
+        fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+
+        const titleInput = screen.getByLabelText(/title/i);
+        fireEvent.change(titleInput, { target: { value: 'Renamed Entry' } });
+
+        await act(async () => {
+          vi.advanceTimersByTime(1000);
+        });
+
+        // Close the modal and verify the card in the grid shows the new title
+        fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+        expect(screen.getByText('Renamed Entry')).toBeInTheDocument();
+        expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

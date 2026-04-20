@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus } from '@/types';
 import {
   DndContext,
@@ -20,15 +19,18 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { StageSection } from './StageSection';
+import { EntryEditor } from './EntryEditor';
+import { Modal } from '@/components/ui/Modal';
 
 interface CardProps {
   entry: Entry;
   isSelected: boolean;
   hasSelection: boolean;
   onToggleSelection: (id: string, shiftKey: boolean) => void;
+  onOpen: (entry: Entry) => void;
 }
 
-function SortableCard({ entry, isSelected, hasSelection, onToggleSelection }: CardProps) {
+function SortableCard({ entry, isSelected, hasSelection, onToggleSelection, onOpen }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.id,
   });
@@ -61,7 +63,12 @@ function SortableCard({ entry, isSelected, hasSelection, onToggleSelection }: Ca
           className="w-5 h-5 rounded cursor-pointer accent-blue-500"
         />
       </div>
-      <Link href={`/edit/${entry.id}`} className="block">
+      <button
+        type="button"
+        onClick={() => onOpen(entry)}
+        aria-label={`Open entry ${entry.title || 'Untitled'}`}
+        className="block w-full text-left p-0 bg-transparent border-0"
+      >
         <img
           src={`/api/media/${entry.id}`}
           alt={entry.title || 'Entry thumbnail'}
@@ -75,12 +82,12 @@ function SortableCard({ entry, isSelected, hasSelection, onToggleSelection }: Ca
             {entry.title || 'Untitled'}
           </span>
         </div>
-      </Link>
+      </button>
     </div>
   );
 }
 
-function StaticCard({ entry, isSelected, hasSelection, onToggleSelection }: CardProps) {
+function StaticCard({ entry, isSelected, hasSelection, onToggleSelection, onOpen }: CardProps) {
   return (
     <div className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
       <div
@@ -99,7 +106,12 @@ function StaticCard({ entry, isSelected, hasSelection, onToggleSelection }: Card
           className="w-5 h-5 rounded cursor-pointer accent-blue-500"
         />
       </div>
-      <Link href={`/edit/${entry.id}`} className="block">
+      <button
+        type="button"
+        onClick={() => onOpen(entry)}
+        aria-label={`Open entry ${entry.title || 'Untitled'}`}
+        className="block w-full text-left p-0 bg-transparent border-0"
+      >
         <img
           src={`/api/media/${entry.id}`}
           alt={entry.title || 'Entry thumbnail'}
@@ -113,7 +125,7 @@ function StaticCard({ entry, isSelected, hasSelection, onToggleSelection }: Card
             {entry.title || 'Untitled'}
           </span>
         </div>
-      </Link>
+      </button>
     </div>
   );
 }
@@ -130,6 +142,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState({ active: false, staging: false, disabled: false });
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const lastSelectedRef = useRef<string | null>(null);
 
   const sensors = useSensors(
@@ -271,6 +284,11 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     }
   }
 
+  function handleEntryUpdated(updated: Entry) {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    setSelectedEntry(updated);
+  }
+
   const moveButtons: Array<{ label: string; status: EntryStatus }> = [
     { label: 'Move to Active', status: 'active' },
     { label: 'Move to Staging', status: 'staging' },
@@ -362,6 +380,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                   onToggleSelection={(id, shiftKey) =>
                     toggleSelection(id, shiftKey, activeEntries)
                   }
+                  onOpen={setSelectedEntry}
                 />
               ))}
             </div>
@@ -399,6 +418,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
               onToggleSelection={(id, shiftKey) =>
                 toggleSelection(id, shiftKey, stagingEntries)
               }
+              onOpen={setSelectedEntry}
             />
           ))}
         </div>
@@ -422,6 +442,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
               onToggleSelection={(id, shiftKey) =>
                 toggleSelection(id, shiftKey, disabledEntries)
               }
+              onOpen={setSelectedEntry}
             />
           ))}
         </div>
@@ -449,6 +470,17 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
             Clear
           </button>
         </div>
+      )}
+
+      {/* Entry editor modal */}
+      {selectedEntry && (
+        <Modal onClose={() => setSelectedEntry(null)}>
+          <EntryEditor
+            entry={selectedEntry}
+            hasNarration={!!selectedEntry.has_narration}
+            onEntryUpdated={handleEntryUpdated}
+          />
+        </Modal>
       )}
     </div>
   );
