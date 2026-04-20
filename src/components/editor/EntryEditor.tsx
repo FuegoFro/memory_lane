@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 
@@ -10,15 +8,11 @@ type NarrationState = 'noNarration' | 'hasNarration' | 'recording' | 'uploading'
 
 interface EntryEditorProps {
   entry: Entry;
-  backHref?: string;
   hasNarration?: boolean;
   onEntryUpdated?: (entry: Entry) => void;
 }
 
-export function EntryEditor({ entry, backHref, hasNarration: initialHasNarration = false, onEntryUpdated }: EntryEditorProps) {
-  const router = useRouter();
-  const backUrl = backHref || '/edit';
-
+export function EntryEditor({ entry, hasNarration: initialHasNarration = false, onEntryUpdated }: EntryEditorProps) {
   const [title, setTitle] = useState(entry.title || '');
   const [transcript, setTranscript] = useState(entry.transcript || '');
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
