@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EntryGrid } from '../EntryGrid';
+import { ToastProvider } from '@/components/ui/Toast';
 import { Entry } from '@/types';
 
 // EntryEditor (rendered inside the modal) calls useRouter from next/navigation.
@@ -14,16 +15,20 @@ vi.mock('next/navigation', () => ({
 }));
 
 let capturedOnDragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
+let capturedOnDragStart: ((event: { active: { id: string } }) => void) | null = null;
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({
     children,
     onDragEnd,
+    onDragStart,
   }: {
     children: React.ReactNode;
     onDragEnd: (event: { active: { id: string }; over: { id: string } | null }) => void;
+    onDragStart?: (event: { active: { id: string } }) => void;
   }) => {
     capturedOnDragEnd = onDragEnd;
+    capturedOnDragStart = onDragStart ?? null;
     return <>{children}</>;
   },
   DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children || null}</>,
@@ -54,6 +59,29 @@ vi.mock('@dnd-kit/sortable', () => ({
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+
+function makeEntry(overrides: Partial<Entry> = {}): Entry {
+  return {
+    id: 'id',
+    dropbox_path: '/a.jpg',
+    title: 'Untitled',
+    transcript: null,
+    position: null,
+    disabled: 0,
+    has_narration: 0,
+    created_at: '2020-01-01',
+    updated_at: '2020-01-01',
+    ...overrides,
+  };
+}
+
+function renderGrid(entries: Entry[]) {
+  return render(
+    <ToastProvider>
+      <EntryGrid initialEntries={entries} />
+    </ToastProvider>
+  );
+}
 
 const createTestEntries = (): Entry[] => [
   {
@@ -106,91 +134,55 @@ describe('EntryGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedOnDragEnd = null;
+    capturedOnDragStart = null;
   });
 
   describe('Sections', () => {
     it('renders all three section headers', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      expect(screen.getByText('Active')).toBeInTheDocument();
-      expect(screen.getByText('Staging')).toBeInTheDocument();
-      expect(screen.getByText('Disabled')).toBeInTheDocument();
+      renderGrid(createTestEntries());
+      expect(screen.getAllByText('In the slideshow').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Just arrived').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Set aside').length).toBeGreaterThan(0);
     });
 
-    it('shows all entries across sections by default', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+    it('shows active, staging, and disabled entry titles by default (disabled visible via drawer peek alt text)', () => {
+      renderGrid(createTestEntries());
       expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
       expect(screen.getByText('Active Entry 2')).toBeInTheDocument();
       expect(screen.getByText('Staging Entry')).toBeInTheDocument();
-      expect(screen.getByText('Disabled Entry')).toBeInTheDocument();
-    });
-
-    it('all sections are expanded by default', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      expect(screen.getAllByText('▼')).toHaveLength(3);
-    });
-
-    it('collapses a section when its header is clicked', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getByRole('button', { name: /collapse active section/i }));
-      expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
-      expect(screen.getByText('Staging Entry')).toBeInTheDocument();
-    });
-
-    it('re-expands a collapsed section when its header is clicked again', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const toggleBtn = screen.getByRole('button', { name: /collapse active section/i });
-      fireEvent.click(toggleBtn);
-      expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /expand active section/i }));
-      expect(screen.getByText('Active Entry 1')).toBeInTheDocument();
+      // Disabled entries render inside the collapsed drawer's peek strip (as images with alt text)
+      const peekThumbs = screen.getAllByTestId('drawer-peek-thumb');
+      expect(peekThumbs.length).toBe(1);
     });
 
     it('does not render status badge dots on cards', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       expect(screen.queryByTestId('status-badge')).not.toBeInTheDocument();
     });
 
     it('does not render filter buttons', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       expect(screen.queryByRole('button', { name: /^all$/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /^active$/i })).not.toBeInTheDocument();
     });
   });
 
-  describe('Thumbnail size slider', () => {
-    it('renders size slider with correct range', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const slider = screen.getByRole('slider');
-      expect(slider).toHaveAttribute('min', '100');
-      expect(slider).toHaveAttribute('max', '400');
-      expect(slider).toHaveValue('200');
-    });
-
-    it('changing slider updates active grid column sizing', () => {
-      const { container } = render(<EntryGrid initialEntries={createTestEntries()} />);
-      const slider = screen.getByRole('slider');
-      fireEvent.change(slider, { target: { value: '300' } });
-      const grid = container.querySelector('[data-testid="entry-grid"]');
-      expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' });
-    });
-  });
-
   describe('Sync button', () => {
     it('renders sync button', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       expect(screen.getByRole('button', { name: /sync from dropbox/i })).toBeInTheDocument();
     });
 
     it('shows "Syncing..." while sync is in progress', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {}));
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       fireEvent.click(screen.getByRole('button', { name: /sync from dropbox/i }));
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /syncing/i })).toBeInTheDocument();
       });
     });
 
-    it('calls sync API and shows success message', async () => {
+    it('calls sync API and shows success toast', async () => {
       const entries = createTestEntries();
       const newEntries = [
         ...entries,
@@ -210,19 +202,19 @@ describe('EntryGrid', () => {
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ added: 1 }) })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(newEntries) });
 
-      render(<EntryGrid initialEntries={entries} />);
+      renderGrid(entries);
       fireEvent.click(screen.getByRole('button', { name: /sync from dropbox/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Added 1 new entries')).toBeInTheDocument();
+        expect(screen.getByText(/Synced/)).toBeInTheDocument();
       });
       expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/sync', { method: 'POST' });
       expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries');
     });
 
-    it('shows error message on sync failure', async () => {
+    it('shows error toast on sync failure', async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({ error: 'Failed' }) });
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       fireEvent.click(screen.getByRole('button', { name: /sync from dropbox/i }));
       await waitFor(() => {
         expect(screen.getByText('Sync failed')).toBeInTheDocument();
@@ -231,7 +223,7 @@ describe('EntryGrid', () => {
 
     it('button is disabled while syncing', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {}));
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       fireEvent.click(screen.getByRole('button', { name: /sync from dropbox/i }));
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /syncing/i })).toBeDisabled();
@@ -239,103 +231,78 @@ describe('EntryGrid', () => {
     });
   });
 
-  describe('Hover overlay', () => {
-    it('entry cards have hover overlay elements', () => {
-      const { container } = render(<EntryGrid initialEntries={createTestEntries()} />);
-      const overlays = container.querySelectorAll('[data-testid="entry-overlay"]');
-      expect(overlays.length).toBeGreaterThan(0);
-    });
-  });
-
   describe('Multi-select', () => {
-    it('renders checkboxes for all entries across sections', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes).toHaveLength(4);
+    it('shows selection checkboxes on hover/selection (thumb-check testid)', () => {
+      renderGrid(createTestEntries());
+      // Before selecting, thumb-check doesn't render (it appears on hover/selection).
+      // Once we select via simulated hover + click, checkboxes show for all visible entries.
+      // Easiest: click first thumb's title to open (no), instead use simulated flow below.
+      // For this sanity test: no checks visible initially.
+      expect(screen.queryAllByTestId('thumb-check').length).toBe(0);
     });
 
-    it('clicking checkbox selects an entry', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      expect(checkboxes[0]).toBeChecked();
-    });
-
-    it('shows floating action bar when entries are selected', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    it('shows floating selection bar when an entry is selected via thumb-check', () => {
+      renderGrid(createTestEntries());
+      // Trigger hover so the check appears on the first active entry
+      const thumb = screen.getByText('Active Entry 1').closest('div[style*="position"]')!;
+      fireEvent.mouseEnter(thumb);
+      const check = screen.getAllByTestId('thumb-check')[0];
+      fireEvent.click(check);
       expect(screen.getByText('1 selected')).toBeInTheDocument();
     });
 
-    it('shows correct count when multiple entries selected', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      fireEvent.click(checkboxes[1]);
+    it('selecting two entries shows "2 selected"', () => {
+      renderGrid(createTestEntries());
+      const thumb1 = screen.getByText('Active Entry 1').closest('div[style*="position"]')!;
+      fireEvent.mouseEnter(thumb1);
+      fireEvent.click(screen.getAllByTestId('thumb-check')[0]);
+      // After first selection, multiSelectActive is true, so checks are visible on all thumbs.
+      // Click a second, different thumb-check (entry-2).
+      const thumb2 = screen.getByText('Active Entry 2').closest('div[style*="position"]')!;
+      const check2 = thumb2.querySelector('[data-testid="thumb-check"]')!;
+      fireEvent.click(check2);
       expect(screen.getByText('2 selected')).toBeInTheDocument();
     });
 
-    it('hides floating action bar when selection is cleared', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      fireEvent.click(checkboxes[0]);
-      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
-    });
-
-    it('clear button deselects all entries', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      fireEvent.click(checkboxes[1]);
-      fireEvent.click(screen.getByRole('button', { name: /clear/i }));
-      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
-    });
-
-    it('toolbar "Select all" appears when any entry is selected', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getAllByRole('checkbox')[0]);
-      const selectAllButtons = screen.getAllByRole('button', { name: /select all/i });
-      expect(selectAllButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('section "Select all" selects all entries in that section', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      // Active section has entry-1, entry-2
-      const activeSectionSelectAll = screen.getAllByRole('button', { name: /select all/i })[0];
-      fireEvent.click(activeSectionSelectAll);
-      expect(screen.getByText('2 selected')).toBeInTheDocument();
-    });
-
-    it('section "Select all" works even when section is collapsed', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getByRole('button', { name: /collapse staging section/i }));
-      // Staging section select all button should still be visible
-      const stagingSelectAll = screen.getAllByRole('button', { name: /select all/i })[1];
-      fireEvent.click(stagingSelectAll);
+    it('clear button in SelectionBar deselects all entries', () => {
+      renderGrid(createTestEntries());
+      const thumb1 = screen.getByText('Active Entry 1').closest('div[style*="position"]')!;
+      fireEvent.mouseEnter(thumb1);
+      fireEvent.click(screen.getAllByTestId('thumb-check')[0]);
       expect(screen.getByText('1 selected')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /clear selection/i }));
+      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
     });
   });
 
-  describe('Floating action bar', () => {
-    it('always shows all three move targets', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getAllByRole('checkbox')[0]);
-      expect(screen.getByRole('button', { name: /move to active/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /move to staging/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^disable$/i })).toBeInTheDocument();
+  describe('SelectionBar', () => {
+    it('shows three move targets: Slideshow, Just arrived, Set aside', () => {
+      renderGrid(createTestEntries());
+      const thumb = screen.getByText('Active Entry 1').closest('div[style*="position"]')!;
+      fireEvent.mouseEnter(thumb);
+      fireEvent.click(screen.getAllByTestId('thumb-check')[0]);
+      // SelectionBar is visible now — the buttons are inside it.
+      // "Slideshow" appears in the SelectionBar. (Also "Just arrived" appears as a heading; button disabled state differs.)
+      // Use role=button filter.
+      expect(screen.getByRole('button', { name: /^Slideshow$/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Just arrived$/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Set aside$/ })).toBeInTheDocument();
     });
 
     it('bulk move calls API for each selected entry and refreshes', async () => {
       const entries = createTestEntries();
       mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(entries) });
 
-      render(<EntryGrid initialEntries={entries} />);
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      fireEvent.click(checkboxes[1]);
+      renderGrid(entries);
+      const thumb1 = screen.getByText('Active Entry 1').closest('div[style*="position"]')!;
+      fireEvent.mouseEnter(thumb1);
+      const check1 = thumb1.querySelector('[data-testid="thumb-check"]')!;
+      fireEvent.click(check1);
+      const thumb2 = screen.getByText('Active Entry 2').closest('div[style*="position"]')!;
+      const check2 = thumb2.querySelector('[data-testid="thumb-check"]')!;
+      fireEvent.click(check2);
 
-      fireEvent.click(screen.getByRole('button', { name: /move to staging/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^Just arrived$/ }));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/entry-1', {
@@ -365,11 +332,13 @@ describe('EntryGrid', () => {
       const entries = createTestEntries();
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 
-      render(<EntryGrid initialEntries={entries} />);
+      renderGrid(entries);
       expect(capturedOnDragEnd).not.toBeNull();
 
+      // Drag entry-2 onto entry-1 → entry-2 is inserted before entry-1 in the reorder
       act(() => {
-        capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-2' } });
+        capturedOnDragStart?.({ active: { id: 'entry-2' } });
+        capturedOnDragEnd!({ active: { id: 'entry-2' }, over: { id: 'entry-1' } });
       });
 
       await waitFor(() => {
@@ -385,9 +354,10 @@ describe('EntryGrid', () => {
       const entries = createTestEntries();
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 
-      render(<EntryGrid initialEntries={entries} />);
+      renderGrid(entries);
 
       act(() => {
+        capturedOnDragStart?.({ active: { id: 'entry-2' } });
         capturedOnDragEnd!({ active: { id: 'entry-2' }, over: { id: 'entry-1' } });
       });
 
@@ -401,20 +371,22 @@ describe('EntryGrid', () => {
     });
 
     it('does not call reorder API when dropped on the same card', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+      renderGrid(createTestEntries());
       act(() => {
+        capturedOnDragStart?.({ active: { id: 'entry-1' } });
         capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-1' } });
       });
       expect(mockFetch).not.toHaveBeenCalledWith('/api/edit/entries/reorder', expect.anything());
     });
 
-    it('reverts entry order and shows error message when reorder API fails', async () => {
+    it('reverts entry order and shows error toast when reorder API fails', async () => {
       const entries = createTestEntries();
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      render(<EntryGrid initialEntries={entries} />);
+      renderGrid(entries);
 
       act(() => {
+        capturedOnDragStart?.({ active: { id: 'entry-1' } });
         capturedOnDragEnd!({ active: { id: 'entry-1' }, over: { id: 'entry-2' } });
       });
 
@@ -439,12 +411,12 @@ describe('EntryGrid', () => {
       });
     });
 
-    it('opens the entry editor when a card is clicked', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
+    it('opens the entry editor when a card title is clicked', () => {
+      renderGrid(createTestEntries());
       // Editor not rendered initially
       expect(screen.queryByLabelText(/title/i)).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+      fireEvent.click(screen.getByText('Active Entry 1'));
 
       // Editor now rendered, with the clicked entry's title in the title field
       const titleInput = screen.getByLabelText(/title/i) as HTMLInputElement;
@@ -453,8 +425,8 @@ describe('EntryGrid', () => {
     });
 
     it('closes the editor when the close button is clicked', () => {
-      render(<EntryGrid initialEntries={createTestEntries()} />);
-      fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+      renderGrid(createTestEntries());
+      fireEvent.click(screen.getByText('Active Entry 1'));
       expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
@@ -468,8 +440,8 @@ describe('EntryGrid', () => {
       mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(renamed) });
       vi.useFakeTimers();
       try {
-        render(<EntryGrid initialEntries={entries} />);
-        fireEvent.click(screen.getByRole('button', { name: /open entry active entry 1/i }));
+        renderGrid(entries);
+        fireEvent.click(screen.getByText('Active Entry 1'));
 
         const titleInput = screen.getByLabelText(/title/i);
         fireEvent.change(titleInput, { target: { value: 'Renamed Entry' } });
@@ -486,5 +458,70 @@ describe('EntryGrid', () => {
         vi.useRealTimers();
       }
     });
+  });
+
+  it('renders Just arrived above In the slideshow when staging has items', () => {
+    const entries = [
+      makeEntry({ id: 'active1', position: 1, disabled: 0 }),
+      makeEntry({ id: 'staging1', position: null, disabled: 0 }),
+    ];
+    renderGrid(entries);
+    const html = document.body.innerHTML;
+    // Use lastIndexOf to find the section-header occurrences (toolbar pills also mention these labels)
+    const idxStaging = html.lastIndexOf('Just arrived');
+    const idxActive = html.lastIndexOf('In the slideshow');
+    expect(idxStaging).toBeGreaterThan(-1);
+    expect(idxActive).toBeGreaterThan(-1);
+    expect(idxStaging).toBeLessThan(idxActive);
+  });
+
+  it('renders Just arrived below In the slideshow when staging is empty', () => {
+    const entries = [makeEntry({ id: 'active1', position: 1, disabled: 0 })];
+    renderGrid(entries);
+    const html = document.body.innerHTML;
+    const idxStaging = html.lastIndexOf('Just arrived');
+    const idxActive = html.lastIndexOf('In the slideshow');
+    expect(idxActive).toBeGreaterThan(-1);
+    expect(idxStaging).toBeGreaterThan(-1);
+    expect(idxStaging).toBeGreaterThan(idxActive);
+  });
+
+  it('filters by title via the search input', () => {
+    const entries = [
+      makeEntry({ id: 'a', title: 'Beach at dawn', position: 1 }),
+      makeEntry({ id: 'b', title: 'Kitchen sink', position: 2 }),
+    ];
+    renderGrid(entries);
+    fireEvent.change(screen.getByPlaceholderText(/search titles/i), { target: { value: 'beach' } });
+    expect(screen.getByText('Beach at dawn')).toBeInTheDocument();
+    expect(screen.queryByText('Kitchen sink')).toBeNull();
+  });
+
+  it('filters by transcript substring', () => {
+    const entries = [
+      makeEntry({ id: 'a', title: 'X', transcript: 'pad thai night', position: 1 }),
+      makeEntry({ id: 'b', title: 'Y', transcript: 'lasagna sunday', position: 2 }),
+    ];
+    renderGrid(entries);
+    fireEvent.change(screen.getByPlaceholderText(/search titles/i), { target: { value: 'pad' } });
+    expect(screen.getByText('X')).toBeInTheDocument();
+    expect(screen.queryByText('Y')).toBeNull();
+  });
+
+  it('renders the disabled drawer collapsed by default with peek thumbs', () => {
+    const entries = [
+      makeEntry({ id: 'd1', position: null, disabled: 1 }),
+      makeEntry({ id: 'd2', position: null, disabled: 1 }),
+    ];
+    renderGrid(entries);
+    expect(screen.getAllByTestId('drawer-peek-thumb')).toHaveLength(2);
+  });
+
+  it('density slider controls the active grid column count', () => {
+    const entries = [makeEntry({ id: 'a', position: 1 })];
+    const { container } = renderGrid(entries);
+    fireEvent.change(screen.getByLabelText(/grid density/i), { target: { value: '8' } });
+    const grid = container.querySelector('[data-testid="entry-grid-active"]') as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toBe('repeat(8, 1fr)');
   });
 });

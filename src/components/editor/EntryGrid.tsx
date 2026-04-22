@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Entry, getEntryStatus, EntryStatus } from '@/types';
+import { useMemo, useState, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -12,247 +11,95 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  useSortable,
-  rectSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { StageSection } from './StageSection';
-import { EntryEditor } from './EntryEditor';
+import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { useRouter } from 'next/navigation';
+import { Entry, EntryStatus, getEntryStatus, isVideoFile } from '@/types';
+import { EditorMasthead } from './EditorMasthead';
+import { EditorToolbar, SectionKey } from './EditorToolbar';
+import { SectionHeader } from './SectionHeader';
+import { DisabledDrawer } from './DisabledDrawer';
+import { SelectionBar } from './SelectionBar';
+import { Thumb, ThumbEntry } from '@/components/ui/Thumb';
+import { Btn } from '@/components/ui/Btn';
 import { Modal } from '@/components/ui/Modal';
-
-interface CardProps {
-  entry: Entry;
-  isSelected: boolean;
-  hasSelection: boolean;
-  onToggleSelection: (id: string, shiftKey: boolean) => void;
-  onOpen: (entry: Entry) => void;
-}
-
-function SortableCard({ entry, isSelected, hasSelection, onToggleSelection, onOpen }: CardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: entry.id,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-        transition,
-        opacity: isDragging ? 0.3 : undefined,
-      }}
-      {...attributes}
-      {...listeners}
-      className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all cursor-grab active:cursor-grabbing"
-    >
-      <div
-        className={`absolute top-2 left-2 z-10 ${
-          hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        } transition-opacity`}
-      >
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelection(entry.id, e.shiftKey);
-          }}
-          className="w-5 h-5 rounded cursor-pointer accent-blue-500"
-        />
-      </div>
-      <button
-        type="button"
-        onClick={() => onOpen(entry)}
-        aria-label={`Open entry ${entry.title || 'Untitled'}`}
-        className="block w-full text-left p-0 bg-transparent border-0"
-      >
-        <img
-          src={`/api/media/${entry.id}`}
-          alt={entry.title || 'Entry thumbnail'}
-          className="w-full aspect-square object-cover"
-        />
-        <div
-          data-testid="entry-overlay"
-          className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
-        >
-          <span className="text-white font-medium text-center line-clamp-2">
-            {entry.title || 'Untitled'}
-          </span>
-        </div>
-      </button>
-    </div>
-  );
-}
-
-function StaticCard({ entry, isSelected, hasSelection, onToggleSelection, onOpen }: CardProps) {
-  return (
-    <div className="relative group rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
-      <div
-        className={`absolute top-2 left-2 z-10 ${
-          hasSelection ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        } transition-opacity`}
-      >
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelection(entry.id, e.shiftKey);
-          }}
-          className="w-5 h-5 rounded cursor-pointer accent-blue-500"
-        />
-      </div>
-      <button
-        type="button"
-        onClick={() => onOpen(entry)}
-        aria-label={`Open entry ${entry.title || 'Untitled'}`}
-        className="block w-full text-left p-0 bg-transparent border-0"
-      >
-        <img
-          src={`/api/media/${entry.id}`}
-          alt={entry.title || 'Entry thumbnail'}
-          className="w-full aspect-square object-cover"
-        />
-        <div
-          data-testid="entry-overlay"
-          className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4"
-        >
-          <span className="text-white font-medium text-center line-clamp-2">
-            {entry.title || 'Untitled'}
-          </span>
-        </div>
-      </button>
-    </div>
-  );
-}
+import { EntryEditor } from './EntryEditor';
+import { useToast } from '@/components/ui/Toast';
+import { SECTION_IDS } from './shared';
 
 interface EntryGridProps {
   initialEntries: Entry[];
 }
 
+function toThumbEntry(e: Entry): ThumbEntry {
+  return {
+    id: e.id,
+    title: e.title ?? 'Untitled',
+    year: e.created_at ? new Date(e.created_at).getFullYear() : null,
+    kind: isVideoFile(e.dropbox_path) ? 'video' : 'photo',
+    src: `/api/media/${e.id}`,
+    hasNarration: !!e.has_narration,
+    duration: null,
+  };
+}
+
+function matchesSearch(e: Entry, q: string): boolean {
+  if (!q) return true;
+  const needle = q.toLowerCase().trim();
+  if ((e.title ?? '').toLowerCase().includes(needle)) return true;
+  if ((e.transcript ?? '').toLowerCase().includes(needle)) return true;
+  if (e.created_at && new Date(e.created_at).getFullYear().toString().includes(needle)) return true;
+  return false;
+}
+
 export function EntryGrid({ initialEntries }: EntryGridProps) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [entries, setEntries] = useState(initialEntries);
-  const [thumbnailSize, setThumbnailSize] = useState(200);
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [density, setDensity] = useState(6);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState({ active: false, staging: false, disabled: false });
-  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const movingIdsRef = useRef<string[] | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [openEntryId, setOpenEntryId] = useState<string | null>(null);
   const lastSelectedRef = useRef<string | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const activeEntries = entries.filter((e) => getEntryStatus(e) === 'active');
-  const stagingEntries = entries.filter((e) => getEntryStatus(e) === 'staging');
-  const disabledEntries = entries.filter((e) => getEntryStatus(e) === 'disabled');
-  const activeEntryIds = activeEntries.map((e) => e.id);
+  const active = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'active'), [entries]);
+  const staging = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'staging'), [entries]);
+  const disabled = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'disabled'), [entries]);
 
-  function toggleCollapse(status: EntryStatus) {
-    setCollapsed((prev) => ({ ...prev, [status]: !prev[status] }));
-  }
+  const fActive = useMemo(() => active.filter((e) => matchesSearch(e, search)), [active, search]);
+  const fStaging = useMemo(() => staging.filter((e) => matchesSearch(e, search)), [staging, search]);
+  const fDisabled = useMemo(() => disabled.filter((e) => matchesSearch(e, search)), [disabled, search]);
 
-  async function handleSync() {
-    setSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch('/api/edit/entries/sync', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setSyncResult(`Added ${data.added} new entries`);
-        const entriesRes = await fetch('/api/edit/entries');
-        const entriesData = await entriesRes.json();
-        setEntries(entriesData);
-      } else {
-        setSyncResult('Sync failed');
-      }
-    } catch {
-      setSyncResult('Sync failed');
-    } finally {
-      setSyncing(false);
-    }
-  }
+  const stagingHot = staging.length > 0;
+  const openEntry = entries.find((e) => e.id === openEntryId) ?? null;
 
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = entries.findIndex((e) => e.id === active.id);
-    const newIndex = entries.findIndex((e) => e.id === over.id);
-    const previousEntries = [...entries];
-    const newEntries = arrayMove(entries, oldIndex, newIndex);
-    setEntries(newEntries);
-
-    const orderedIds = newEntries
-      .filter((e) => getEntryStatus(e) === 'active')
-      .map((e) => e.id);
-
-    fetch('/api/edit/entries/reorder', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderedIds }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Reorder failed');
-      })
-      .catch(() => {
-        setEntries(previousEntries);
-        setSyncResult('Reorder failed');
-      });
+  function handleJump(key: SectionKey) {
+    const id = SECTION_IDS[key];
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function toggleSelection(entryId: string, shiftKey: boolean, sectionEntries: Entry[]) {
     const lastSelected = lastSelectedRef.current;
     lastSelectedRef.current = entryId;
-
     setSelectedIds((prev) => {
       const next = new Set(prev);
-
       if (shiftKey && lastSelected) {
         const ids = sectionEntries.map((e) => e.id);
         const lastIdx = ids.indexOf(lastSelected);
-        const currentIdx = ids.indexOf(entryId);
-        if (lastIdx !== -1 && currentIdx !== -1) {
-          const [start, end] = [Math.min(lastIdx, currentIdx), Math.max(lastIdx, currentIdx)];
-          for (let i = start; i <= end; i++) {
-            next.add(ids[i]);
-          }
-        } else {
-          if (next.has(entryId)) next.delete(entryId);
-          else next.add(entryId);
+        const currIdx = ids.indexOf(entryId);
+        if (lastIdx !== -1 && currIdx !== -1) {
+          const [a, b] = [Math.min(lastIdx, currIdx), Math.max(lastIdx, currIdx)];
+          for (let i = a; i <= b; i++) next.add(ids[i]);
+          return next;
         }
-      } else if (next.has(entryId)) {
-        next.delete(entryId);
-      } else {
-        next.add(entryId);
       }
-
-      return next;
-    });
-  }
-
-  function selectAll() {
-    setSelectedIds(new Set(entries.map((e) => e.id)));
-  }
-
-  function selectAllInSection(sectionEntries: Entry[]) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      sectionEntries.forEach((e) => next.add(e.id));
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
       return next;
     });
   }
@@ -262,15 +109,23 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     lastSelectedRef.current = null;
   }
 
-  async function handleBulkMove(targetStatus: EntryStatus) {
+  function selectionCommonStatus(): EntryStatus | 'mixed' | null {
+    const items = entries.filter((e) => selectedIds.has(e.id));
+    if (items.length === 0) return null;
+    const first = getEntryStatus(items[0]);
+    return items.every((i) => getEntryStatus(i) === first) ? first : 'mixed';
+  }
+
+  async function handleBulkMove(target: EntryStatus) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
     try {
-      const ids = Array.from(selectedIds);
       await Promise.all(
         ids.map((id) =>
           fetch(`/api/edit/entries/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: targetStatus }),
+            body: JSON.stringify({ status: target }),
           })
         )
       );
@@ -278,210 +133,317 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       const data = await res.json();
       setEntries(data);
       clearSelection();
-    } catch (error) {
-      console.error('Bulk move failed:', error);
-      setSyncResult('Move failed');
+      const words: Record<EntryStatus, string> = {
+        active: 'added to the slideshow',
+        staging: 'moved to Just arrived',
+        disabled: 'set aside',
+      };
+      showToast(`${ids.length} ${ids.length === 1 ? 'entry' : 'entries'} ${words[target]}`, 'ok');
+    } catch {
+      showToast('Move failed', 'error');
     }
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/edit/entries/sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        const entriesRes = await fetch('/api/edit/entries');
+        setEntries(await entriesRes.json());
+        showToast(`Synced — ${data.added ?? 0} new arrivals`, 'ok');
+      } else {
+        showToast('Sync failed', 'error');
+      }
+    } catch {
+      showToast('Sync failed', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string;
+    setActiveDragId(id);
+    movingIdsRef.current = selectedIds.has(id) ? Array.from(selectedIds) : [id];
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active: dragged, over } = event;
+    setActiveDragId(null);
+    const moving = movingIdsRef.current ?? [dragged.id as string];
+    movingIdsRef.current = null;
+    if (!over || moving.length === 0) return;
+
+    const overId = over.id as string;
+    const previous = [...entries];
+    const activeList = entries.filter((e) => getEntryStatus(e) === 'active');
+    const rest = entries.filter((e) => getEntryStatus(e) !== 'active');
+    const movingSet = new Set(moving);
+    const stayActive = activeList.filter((e) => !movingSet.has(e.id));
+    const movingActive = activeList.filter((e) => movingSet.has(e.id));
+    const targetIdx = stayActive.findIndex((e) => e.id === overId);
+    if (targetIdx === -1) return;
+    const newActive = [
+      ...stayActive.slice(0, targetIdx),
+      ...movingActive,
+      ...stayActive.slice(targetIdx),
+    ];
+    setEntries([...newActive, ...rest]);
+
+    const orderedIds = newActive.map((e) => e.id);
+    fetch('/api/edit/entries/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('Reorder failed');
+      })
+      .catch(() => {
+        setEntries(previous);
+        showToast('Reorder failed', 'error');
+      });
   }
 
   function handleEntryUpdated(updated: Entry) {
     setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-    setSelectedEntry(updated);
   }
 
-  const moveButtons: Array<{ label: string; status: EntryStatus }> = [
-    { label: 'Move to Active', status: 'active' },
-    { label: 'Move to Staging', status: 'staging' },
-    { label: 'Disable', status: 'disabled' },
-  ];
-
-  const activeEntry = activeId ? entries.find((e) => e.id === activeId) : null;
-
-  const gridStyle = {
+  const gridStyle = (cols: number) => ({
     display: 'grid' as const,
-    gap: '1rem',
-    gridTemplateColumns: `repeat(auto-fill, minmax(${thumbnailSize}px, 1fr))`,
-  };
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gap: cols >= 7 ? 14 : 20,
+    marginBottom: 18,
+  });
 
   return (
-    <div className="p-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-4 items-center mb-6">
-        {selectedIds.size > 0 && (
-          <button
-            onClick={selectAll}
-            className="px-3 py-1.5 text-sm rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
-          >
-            Select all
-          </button>
-        )}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-paper)' }}>
+      <EditorMasthead
+        syncing={syncing}
+        canPlay={active.length > 0}
+        onSync={handleSync}
+        onPlay={() => router.push('/')}
+      />
+      <EditorToolbar
+        counts={{ active: active.length, staging: staging.length, disabled: disabled.length }}
+        search={search}
+        onSearchChange={setSearch}
+        density={density}
+        onDensityChange={setDensity}
+        onJump={handleJump}
+      />
 
-        <div className="flex items-center gap-2">
-          <label htmlFor="size-slider" className="text-gray-300 text-sm">
-            Size:
-          </label>
-          <input
-            id="size-slider"
-            type="range"
-            min="100"
-            max="400"
-            value={thumbnailSize}
-            onChange={(e) => setThumbnailSize(Number(e.target.value))}
-            className="w-32"
-          />
-          <span className="text-gray-400 text-sm w-12">{thumbnailSize}px</span>
-        </div>
-
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            syncing
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {syncing ? 'Syncing...' : 'Sync from Dropbox'}
-        </button>
-
-        {syncResult && (
-          <span
-            className={`text-sm ${
-              syncResult.includes('failed') ? 'text-red-400' : 'text-green-400'
-            }`}
-          >
-            {syncResult}
-          </span>
-        )}
-      </div>
-
-      {/* Active section — wrapped in DndContext for drag-to-reorder */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <StageSection
-          status="active"
-          count={activeEntries.length}
-          collapsed={collapsed.active}
-          onToggleCollapse={() => toggleCollapse('active')}
-          onSelectAll={() => selectAllInSection(activeEntries)}
-        >
-          <SortableContext items={activeEntryIds} strategy={rectSortingStrategy}>
-            <div data-testid="entry-grid" style={gridStyle}>
-              {activeEntries.map((entry) => (
-                <SortableCard
-                  key={entry.id}
-                  entry={entry}
-                  isSelected={selectedIds.has(entry.id)}
-                  hasSelection={selectedIds.size > 0}
-                  onToggleSelection={(id, shiftKey) =>
-                    toggleSelection(id, shiftKey, activeEntries)
-                  }
-                  onOpen={setSelectedEntry}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 32px 100px' }}>
+        {/* Staging — above Active when hot */}
+        {stagingHot ? (
+          <section id={SECTION_IDS.staging}>
+            <SectionHeader
+              id="sec-staging-header"
+              label="Just arrived"
+              count={staging.length}
+              color="var(--color-staging)"
+              hint={`${staging.length} waiting for review`}
+              rightSlot={
+                <Btn
+                  kind="subtle"
+                  onClick={async () => {
+                    const ids = staging.map((e) => e.id);
+                    await Promise.all(
+                      ids.map((id) =>
+                        fetch(`/api/edit/entries/${id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'active' }),
+                        })
+                      )
+                    );
+                    const res = await fetch('/api/edit/entries');
+                    setEntries(await res.json());
+                    showToast(`${ids.length} added to the slideshow`, 'ok');
+                  }}
+                >
+                  Add all to slideshow
+                </Btn>
+              }
+            />
+            <div data-testid="entry-grid-staging" style={gridStyle(density)}>
+              {fStaging.map((e) => (
+                <Thumb
+                  key={e.id}
+                  entry={toThumbEntry(e)}
+                  selected={selectedIds.has(e.id)}
+                  multiSelectActive={selectedIds.size > 0}
+                  onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, staging)}
+                  onOpen={() => setOpenEntryId(e.id)}
                 />
               ))}
             </div>
-          </SortableContext>
-        </StageSection>
+          </section>
+        ) : null}
 
-        <DragOverlay>
-          {activeEntry ? (
-            <div className="rounded-lg overflow-hidden bg-gray-800 ring-2 ring-blue-500 shadow-2xl rotate-1 opacity-95">
-              <img
-                src={`/api/media/${activeEntry.id}`}
-                alt={activeEntry.title || 'Entry thumbnail'}
-                className="w-full aspect-square object-cover"
-              />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-
-      {/* Staging section */}
-      <StageSection
-        status="staging"
-        count={stagingEntries.length}
-        collapsed={collapsed.staging}
-        onToggleCollapse={() => toggleCollapse('staging')}
-        onSelectAll={() => selectAllInSection(stagingEntries)}
-      >
-        <div style={gridStyle}>
-          {stagingEntries.map((entry) => (
-            <StaticCard
-              key={entry.id}
-              entry={entry}
-              isSelected={selectedIds.has(entry.id)}
-              hasSelection={selectedIds.size > 0}
-              onToggleSelection={(id, shiftKey) =>
-                toggleSelection(id, shiftKey, stagingEntries)
-              }
-              onOpen={setSelectedEntry}
-            />
-          ))}
-        </div>
-      </StageSection>
-
-      {/* Disabled section */}
-      <StageSection
-        status="disabled"
-        count={disabledEntries.length}
-        collapsed={collapsed.disabled}
-        onToggleCollapse={() => toggleCollapse('disabled')}
-        onSelectAll={() => selectAllInSection(disabledEntries)}
-      >
-        <div style={gridStyle}>
-          {disabledEntries.map((entry) => (
-            <StaticCard
-              key={entry.id}
-              entry={entry}
-              isSelected={selectedIds.has(entry.id)}
-              hasSelection={selectedIds.size > 0}
-              onToggleSelection={(id, shiftKey) =>
-                toggleSelection(id, shiftKey, disabledEntries)
-              }
-              onOpen={setSelectedEntry}
-            />
-          ))}
-        </div>
-      </StageSection>
-
-      {/* Floating action bar */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl px-6 py-3 flex items-center gap-4 z-50">
-          <span className="text-white font-medium">{selectedIds.size} selected</span>
-
-          {moveButtons.map((btn) => (
-            <button
-              key={btn.status}
-              onClick={() => handleBulkMove(btn.status)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              {btn.label}
-            </button>
-          ))}
-
-          <button
-            onClick={clearSelection}
-            className="px-3 py-2 text-gray-400 hover:text-white transition-colors"
+        {/* Active */}
+        <section id={SECTION_IDS.active}>
+          <SectionHeader
+            id="sec-active-header"
+            label="In the slideshow"
+            count={active.length}
+            color="var(--color-accent)"
+            hint="Drag to reorder"
+          />
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            Clear
-          </button>
-        </div>
-      )}
+            <SortableContext items={active.map((e) => e.id)} strategy={rectSortingStrategy}>
+              {fActive.length === 0 ? (
+                <EmptyState
+                  text={search ? 'Nothing matches your search.' : 'No photos in the slideshow yet.'}
+                />
+              ) : (
+                <div data-testid="entry-grid-active" style={gridStyle(density)}>
+                  {fActive.map((e) => (
+                    <SortableThumb
+                      key={e.id}
+                      entry={e}
+                      index={active.findIndex((a) => a.id === e.id) + 1}
+                      selected={selectedIds.has(e.id)}
+                      multiSelectActive={selectedIds.size > 0}
+                      onOpen={() => setOpenEntryId(e.id)}
+                      onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, active)}
+                    />
+                  ))}
+                </div>
+              )}
+            </SortableContext>
+            <DragOverlay>
+              {activeDragId ? (
+                <Thumb
+                  entry={toThumbEntry(entries.find((e) => e.id === activeDragId)!)}
+                  selected
+                  multiSelectActive
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </section>
 
-      {/* Entry editor modal */}
-      {selectedEntry && (
-        <Modal onClose={() => setSelectedEntry(null)}>
+        {/* Staging when empty — renders below Active */}
+        {!stagingHot ? (
+          <section id={SECTION_IDS.staging}>
+            <SectionHeader
+              id="sec-staging-empty"
+              label="Just arrived"
+              count={0}
+              color="var(--color-staging)"
+              hint="Nothing waiting"
+            />
+            <EmptyState text="New photos from family will show up here first, before they join the slideshow." />
+          </section>
+        ) : null}
+
+        {/* Disabled drawer */}
+        <DisabledDrawer
+          entries={disabled}
+          open={drawerOpen}
+          onToggle={() => setDrawerOpen((o) => !o)}
+        >
+          <div style={gridStyle(density)}>
+            {fDisabled.map((e) => (
+              <Thumb
+                key={e.id}
+                entry={toThumbEntry(e)}
+                selected={selectedIds.has(e.id)}
+                multiSelectActive={selectedIds.size > 0}
+                onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, disabled)}
+                onOpen={() => setOpenEntryId(e.id)}
+              />
+            ))}
+          </div>
+        </DisabledDrawer>
+      </div>
+
+      {selectedIds.size > 0 ? (
+        <SelectionBar
+          count={selectedIds.size}
+          commonStatus={selectionCommonStatus() ?? 'mixed'}
+          onMoveTo={handleBulkMove}
+          onClear={clearSelection}
+        />
+      ) : null}
+
+      {openEntry ? (
+        <Modal onClose={() => setOpenEntryId(null)}>
           <EntryEditor
-            entry={selectedEntry}
-            hasNarration={!!selectedEntry.has_narration}
+            entry={openEntry}
+            hasNarration={!!openEntry.has_narration}
             onEntryUpdated={handleEntryUpdated}
           />
         </Modal>
-      )}
+      ) : null}
+    </div>
+  );
+}
+
+function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onToggleSelect }: {
+  entry: Entry;
+  index: number;
+  selected: boolean;
+  multiSelectActive: boolean;
+  onOpen: () => void;
+  onToggleSelect: (ev: MouseEvent) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        transition,
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <Thumb
+        entry={{
+          id: entry.id,
+          title: entry.title ?? 'Untitled',
+          year: entry.created_at ? new Date(entry.created_at).getFullYear() : null,
+          kind: isVideoFile(entry.dropbox_path) ? 'video' : 'photo',
+          src: `/api/media/${entry.id}`,
+          hasNarration: !!entry.has_narration,
+          duration: null,
+        }}
+        index={index}
+        showPosition
+        draggable
+        dragging={isDragging}
+        selected={selected}
+        multiSelectActive={multiSelectActive}
+        onOpen={onOpen}
+        onToggleSelect={onToggleSelect as unknown as (e: React.MouseEvent) => void}
+      />
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div
+      style={{
+        padding: '40px 20px',
+        color: 'var(--color-ink3)',
+        fontSize: 13,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        fontFamily: 'var(--font-news)',
+        marginBottom: 18,
+      }}
+    >
+      {text}
     </div>
   );
 }
