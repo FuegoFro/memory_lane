@@ -96,7 +96,8 @@ export function NarrationPlayer({
   if (!hasNarration) return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 rounded-lg px-4 py-2 flex items-center gap-3">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-md"
+    style={{ background: 'rgba(247,240,227,0.12)', border: '1px solid rgba(247,240,227,0.18)' }}>
       <audio
         ref={audioRef}
         src={narrationUrl}
@@ -106,7 +107,8 @@ export function NarrationPlayer({
         onError={handleError}
       />
 
-      <span className="text-white text-sm min-w-[40px]">
+      <span className="text-sm min-w-[40px] font-mono"
+      style={{ color: 'rgba(247,240,227,0.85)' }}>
         {formatTime(currentTime)}
       </span>
 
@@ -116,10 +118,12 @@ export function NarrationPlayer({
         max={duration || 100}
         value={currentTime}
         onChange={handleSeek}
-        className="w-48 h-1 bg-gray-600 rounded appearance-none cursor-pointer"
+        className="w-48 h-1 rounded appearance-none cursor-pointer narration-scrubber"
+        style={{ background: 'rgba(247,240,227,0.18)', accentColor: 'var(--color-accent-hot)' }}
       />
 
-      <span className="text-white text-sm min-w-[40px]">
+      <span className="text-sm min-w-[40px] font-mono"
+      style={{ color: 'rgba(247,240,227,0.85)' }}>
         {formatTime(duration)}
       </span>
     </div>
