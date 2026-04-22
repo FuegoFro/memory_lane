@@ -12,18 +12,14 @@ interface SlideshowProps {
   initialShowTitles: boolean;
 }
 
-export function Slideshow({
-  entries,
-  initialAutoAdvance,
-  initialShowTitles,
-}: SlideshowProps) {
+export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: SlideshowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoAdvanceDelay, setAutoAdvanceDelay] = useState(initialAutoAdvance);
   const [showTitles, setShowTitles] = useState(initialShowTitles);
   const [isNarrationPlaying, setIsNarrationPlaying] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
-  const hideControlsTimeout = useRef<NodeJS.Timeout>(undefined);
-  const autoAdvanceTimeout = useRef<NodeJS.Timeout>(undefined);
+  const hideControlsTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const autoAdvanceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const currentEntry = entries[currentIndex];
   const isVideo = currentEntry ? isVideoFile(currentEntry.dropbox_path) : false;
@@ -38,54 +34,37 @@ export function Slideshow({
     setIsNarrationPlaying(false);
   }, [entries.length]);
 
-  const toggleNarration = useCallback(() => {
-    setIsNarrationPlaying((p) => !p);
-  }, []);
+  const toggleNarration = useCallback(() => setIsNarrationPlaying((p) => !p), []);
 
-  // Auto-advance logic
+  // Auto-advance
   useEffect(() => {
-    if (autoAdvanceTimeout.current) {
-      clearTimeout(autoAdvanceTimeout.current);
-    }
-
+    if (autoAdvanceTimeout.current) clearTimeout(autoAdvanceTimeout.current);
     if (autoAdvanceDelay > 0 && !isNarrationPlaying && !isVideo) {
       autoAdvanceTimeout.current = setTimeout(goToNext, autoAdvanceDelay * 1000);
     }
-
-    return () => {
-      if (autoAdvanceTimeout.current) {
-        clearTimeout(autoAdvanceTimeout.current);
-      }
-    };
+    return () => { if (autoAdvanceTimeout.current) clearTimeout(autoAdvanceTimeout.current); };
   }, [currentIndex, autoAdvanceDelay, isNarrationPlaying, isVideo, goToNext]);
 
-  // Hide controls after inactivity
+  // Hide controls after 2.5s inactivity
   useEffect(() => {
-    function showControls() {
+    function show() {
       setControlsVisible(true);
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current);
-      }
-      hideControlsTimeout.current = setTimeout(() => {
-        setControlsVisible(false);
-      }, 3000);
+      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
+      hideControlsTimeout.current = setTimeout(() => setControlsVisible(false), 2500);
     }
-
-    window.addEventListener('mousemove', showControls);
-    window.addEventListener('keydown', showControls);
-
+    show();
+    window.addEventListener('mousemove', show);
+    window.addEventListener('keydown', show);
     return () => {
-      window.removeEventListener('mousemove', showControls);
-      window.removeEventListener('keydown', showControls);
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current);
-      }
+      window.removeEventListener('mousemove', show);
+      window.removeEventListener('keydown', show);
+      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
     };
   }, []);
 
-  // Keyboard controls
+  // Keyboard
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
+    function onKey(e: KeyboardEvent) {
       switch (e.key) {
         case 'ArrowRight':
         case 'ArrowDown':
@@ -110,35 +89,80 @@ export function Slideshow({
           break;
       }
     }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [goToNext, goToPrev, toggleNarration]);
 
   if (!currentEntry) {
     return (
-      <div className="h-screen flex items-center justify-center bg-black text-white">
+      <div className="h-screen grid place-items-center" style={{ background: 'var(--color-viewer-bg)', color: 'var(--color-paper)' }}>
         No entries to display
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-black relative overflow-hidden">
-      <MediaDisplay
-        entry={currentEntry}
-        isVideo={isVideo}
-        isNarrationPlaying={isNarrationPlaying}
-        onClick={toggleNarration}
+    <div
+      className="h-screen relative overflow-hidden"
+      style={{ background: '#0d0805', color: 'var(--color-paper)' }}
+    >
+      {/* Warm vignette overlay */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 1,
+          background: `
+            radial-gradient(ellipse at center, transparent 50%, rgba(26,12,4,0.5) 100%),
+            radial-gradient(circle at 18% 8%, rgba(177,74,42,0.10) 0%, transparent 40%),
+            radial-gradient(circle at 85% 92%, rgba(212,165,116,0.08) 0%, transparent 42%)
+          `,
+        }}
       />
 
-      {showTitles && isNarrationPlaying && currentEntry.title && (
-        <div className="absolute bottom-24 left-0 right-0 text-center">
-          <span className="bg-black/70 text-white px-6 py-3 text-2xl rounded">
-            {currentEntry.title}
-          </span>
+      {/* Stage */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'grid',
+          gridTemplateRows: '1fr auto',
+          padding: '0 80px',
+          zIndex: 1,
+        }}
+      >
+        <div style={{ display: 'grid', placeItems: 'center' }}>
+          <MediaDisplay
+            entry={currentEntry}
+            isVideo={isVideo}
+            isNarrationPlaying={isNarrationPlaying}
+            onClick={toggleNarration}
+          />
         </div>
-      )}
+
+        {/* Caption region */}
+        {showTitles && currentEntry.title ? (
+          <div style={{ padding: '20px 40px 120px', textAlign: 'center', maxWidth: 900, margin: '0 auto' }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-serif)',
+                fontStyle: 'italic',
+                fontSize: 38,
+                letterSpacing: -0.3,
+                lineHeight: 1.1,
+                color: 'var(--color-paper)',
+              }}
+            >
+              {currentEntry.title}
+            </h2>
+          </div>
+        ) : (
+          <div style={{ height: 120 }} />
+        )}
+      </div>
 
       <NarrationPlayer
         entryId={currentEntry.id}
@@ -146,9 +170,7 @@ export function Slideshow({
         isVideo={isVideo}
         onEnded={() => {
           setIsNarrationPlaying(false);
-          if (autoAdvanceDelay > 0) {
-            goToNext();
-          }
+          if (autoAdvanceDelay > 0) goToNext();
         }}
       />
 
