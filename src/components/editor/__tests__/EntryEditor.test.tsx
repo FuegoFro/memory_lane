@@ -212,21 +212,6 @@ describe('EntryEditor', () => {
       expect(document.querySelector('audio')).not.toBeInTheDocument();
     });
 
-    it('hides audio player when audio fails to load', async () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} hasNarration={true} />);
-
-      const audio = document.querySelector('audio');
-      expect(audio).toBeInTheDocument();
-
-      // Simulate audio load error (e.g. 404 from server)
-      fireEvent.error(audio!);
-
-      await waitFor(() => {
-        expect(document.querySelector('audio')).not.toBeInTheDocument();
-      });
-    });
-
     it('renders record button', () => {
       const entry = createImageEntry();
       render(<EntryEditor entry={entry} />);
@@ -235,40 +220,14 @@ describe('EntryEditor', () => {
       expect(recordButton).toBeInTheDocument();
     });
 
-    it('renders delete narration button', () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
-      expect(deleteButton).toBeInTheDocument();
-    });
-
-    it('renders retry transcription button', () => {
-      const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-
-      const retryButton = screen.getByRole('button', { name: /retry transcription/i });
-      expect(retryButton).toBeInTheDocument();
-    });
-
-    it('disables Delete Narration button when there is no narration', () => {
-      render(<EntryEditor entry={createImageEntry()} />);
-      expect(screen.getByRole('button', { name: /delete narration/i })).toBeDisabled();
-    });
-
-    it('disables Retry Transcription button when there is no narration', () => {
-      render(<EntryEditor entry={createImageEntry()} />);
-      expect(screen.getByRole('button', { name: /retry transcription/i })).toBeDisabled();
-    });
-
-    it('enables Delete Narration button when narration exists', () => {
+    it('renders remove button when narration exists', () => {
       render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
-      expect(screen.getByRole('button', { name: /delete narration/i })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument();
     });
 
-    it('enables Retry Transcription button when narration exists', () => {
+    it('renders re-record button when narration exists', () => {
       render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
-      expect(screen.getByRole('button', { name: /retry transcription/i })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /re-record/i })).toBeInTheDocument();
     });
   });
 
@@ -480,7 +439,7 @@ describe('EntryEditor', () => {
 
       render(<EntryEditor entry={entry} hasNarration={true} />);
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       expect(mockConfirm).toHaveBeenCalledWith(expect.stringMatching(/delete.*narration/i));
@@ -492,7 +451,7 @@ describe('EntryEditor', () => {
 
       render(<EntryEditor entry={entry} hasNarration={true} />);
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       expect(mockFetch).not.toHaveBeenCalled();
@@ -505,7 +464,7 @@ describe('EntryEditor', () => {
 
       render(<EntryEditor entry={entry} hasNarration={true} />);
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       await waitFor(() => {
@@ -526,7 +485,7 @@ describe('EntryEditor', () => {
       expect(transcriptTextarea).toHaveValue('This is a test transcript');
       expect(document.querySelector('audio')).toBeInTheDocument();
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       // Wait for fetch to complete
@@ -550,7 +509,7 @@ describe('EntryEditor', () => {
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       expect(transcriptTextarea).toHaveValue('This is a test transcript');
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       await waitFor(() => {
@@ -568,7 +527,7 @@ describe('EntryEditor', () => {
       // Audio player is initially visible
       expect(document.querySelector('audio')).toBeInTheDocument();
 
-      const deleteButton = screen.getByRole('button', { name: /delete narration/i });
+      const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
 
       await waitFor(() => {
@@ -577,59 +536,10 @@ describe('EntryEditor', () => {
     });
   });
 
-  describe('Retry transcription', () => {
-    it('calls transcription API and updates transcript', async () => {
-      const entry = createImageEntry();
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ transcript: 'New transcribed text' }),
-      });
-
-      render(<EntryEditor entry={entry} hasNarration={true} />);
-
-      const retryButton = screen.getByRole('button', { name: /retry transcription/i });
-      fireEvent.click(retryButton);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/edit/transcribe/entry-1', {
-          method: 'POST',
-        });
-      });
-
-      await waitFor(() => {
-        const transcriptTextarea = screen.getByLabelText(/transcript/i);
-        expect(transcriptTextarea).toHaveValue('New transcribed text');
-      });
-    });
-
-    it('disables retry button while transcribing', async () => {
-      const entry = createImageEntry();
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-      render(<EntryEditor entry={entry} hasNarration={true} />);
-
-      const retryButton = screen.getByRole('button', { name: /retry transcription/i });
-      fireEvent.click(retryButton);
-
-      await waitFor(() => {
-        expect(retryButton).toBeDisabled();
-      });
-    });
-
-    it('shows transcribing state on button', async () => {
-      const entry = createImageEntry();
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
-      render(<EntryEditor entry={entry} hasNarration={true} />);
-
-      const retryButton = screen.getByRole('button', { name: /retry transcription/i });
-      fireEvent.click(retryButton);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /transcribing/i })).toBeInTheDocument();
-      });
-    });
-  });
+  // Note: the legacy "Retry Transcription" action has been consolidated into
+  // "Re-record" in the redesign. Re-record now starts a fresh recording rather
+  // than re-transcribing the existing audio. Transcription-specific tests live
+  // in NarrationStudio.test.tsx.
 
   describe('Narration button states during async operations', () => {
     let mockMediaRecorder: {
@@ -678,7 +588,7 @@ describe('EntryEditor', () => {
       });
     });
 
-    it('disables all buttons and shows Uploading… on Record button during upload', async () => {
+    it('shows disabled Uploading… button during upload', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {})); // upload never resolves
 
       render(<EntryEditor entry={createImageEntry()} />);
@@ -689,16 +599,14 @@ describe('EntryEditor', () => {
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+        fireEvent.click(screen.getByRole('button', { name: /stop/i }));
         await Promise.resolve();
       });
 
       expect(screen.getByRole('button', { name: /uploading/i })).toBeDisabled();
-      expect(screen.getByRole('button', { name: /delete narration/i })).toBeDisabled();
-      expect(screen.getByRole('button', { name: /retry transcription/i })).toBeDisabled();
     });
 
-    it('disables Record button during transcription after upload', async () => {
+    it('shows Transcribing… label during transcription after upload', async () => {
       mockFetch
         .mockResolvedValueOnce({ ok: true }) // upload succeeds
         .mockImplementation(() => new Promise(() => {})); // transcription never resolves
@@ -711,13 +619,13 @@ describe('EntryEditor', () => {
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+        fireEvent.click(screen.getByRole('button', { name: /stop/i }));
         await Promise.resolve();
         await Promise.resolve();
       });
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /^record$/i })).toBeDisabled();
+        expect(screen.getByText(/transcribing/i)).toBeInTheDocument();
       });
     });
   });
@@ -802,7 +710,7 @@ describe('EntryEditor', () => {
       });
 
       // Stop recording (triggers upload + transcription)
-      const stopButton = screen.getByRole('button', { name: /stop recording/i });
+      const stopButton = screen.getByRole('button', { name: /stop/i });
       await act(async () => {
         fireEvent.click(stopButton);
         await Promise.resolve();
@@ -831,15 +739,15 @@ describe('EntryEditor', () => {
       const originalAudio = document.querySelector('audio');
       expect(originalAudio).toBeInTheDocument();
 
-      // Start recording
-      const recordButton = screen.getByRole('button', { name: /^record$/i });
+      // Re-record (starts a new recording in hasNarration state)
+      const reRecordButton = screen.getByRole('button', { name: /re-record/i });
       await act(async () => {
-        fireEvent.click(recordButton);
+        fireEvent.click(reRecordButton);
         await Promise.resolve();
       });
 
       // Stop recording (triggers upload + transcription)
-      const stopButton = screen.getByRole('button', { name: /stop recording/i });
+      const stopButton = screen.getByRole('button', { name: /stop/i });
       await act(async () => {
         fireEvent.click(stopButton);
         await Promise.resolve();
@@ -864,14 +772,14 @@ describe('EntryEditor', () => {
 
       render(<EntryEditor entry={entry} hasNarration={true} />);
 
-      // Simulate audio error to hide the player
+      // Simulate audio error to hide the player (transitions to noNarration)
       const audio = document.querySelector('audio');
       fireEvent.error(audio!);
       await waitFor(() => {
         expect(document.querySelector('audio')).not.toBeInTheDocument();
       });
 
-      // Start recording
+      // Start recording (noNarration state now shows Record button)
       const recordButton = screen.getByRole('button', { name: /^record$/i });
       await act(async () => {
         fireEvent.click(recordButton);
@@ -879,7 +787,7 @@ describe('EntryEditor', () => {
       });
 
       // Stop recording (triggers upload + transcription)
-      const stopButton = screen.getByRole('button', { name: /stop recording/i });
+      const stopButton = screen.getByRole('button', { name: /stop/i });
       await act(async () => {
         fireEvent.click(stopButton);
         await Promise.resolve();
