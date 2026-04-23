@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { spawn } = require('node:child_process')
+const { spawn } = require('node:child_process') // eslint-disable-line @typescript-eslint/no-require-imports
 
 const env = { ...process.env }
 

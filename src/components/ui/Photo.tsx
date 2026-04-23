@@ -43,6 +43,7 @@ export function Photo({
   return (
     <div className={`photo-grain ${className}`} style={rootStyle}>
       {src ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={src}
           alt={alt}
