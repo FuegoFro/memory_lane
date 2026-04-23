@@ -165,7 +165,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
             right: 0,
             padding: '60px 80px 140px',
             textAlign: 'center',
-            zIndex: 2,
+            zIndex: 3,
             background: 'linear-gradient(transparent, rgba(13,8,5,0.65))',
             pointerEvents: 'none',
           }}
