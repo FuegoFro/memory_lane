@@ -310,6 +310,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
               ) : (
                 <div data-testid="entry-grid-active" style={gridStyle(density)}>
                   {fActive.map((e) => (
+                    // use full active[], not fActive, so index reflects real slideshow position
                     <SortableThumb
                       key={e.id}
                       entry={e}
@@ -381,6 +382,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
 
       {openEntry ? (
         <Modal onClose={() => setOpenEntryId(null)}>
+          {/* activeIndex uses full active[], not fActive: real slideshow position, not filtered position */}
           <EntryEditor
             entry={openEntry}
             hasNarration={!!openEntry.has_narration}

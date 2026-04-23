@@ -181,7 +181,6 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     });
     if (!res.ok) throw new Error('Upload failed');
     setNarrationKey(Date.now().toString());
-    onChange({ has_narration: 1 });
   }
 
   async function triggerTranscription() {
@@ -190,9 +189,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     });
     if (!res.ok) throw new Error('Transcription failed');
     const data = await res.json();
-    if (data.transcript) {
-      onChange({ transcript: data.transcript });
-    }
+    onChange({ has_narration: 1, transcript: data.transcript || undefined });
   }
 
   async function handleRemove() {

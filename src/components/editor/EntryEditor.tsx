@@ -90,6 +90,8 @@ export function EntryEditor({
     if (!isChanged && pendingSaveRef.current === null) return;
 
     pendingSaveRef.current = { title, transcript, status };
+    // setState inside an effect is intentional here: we want the 'saving' indicator
+    // to appear immediately when state changes are detected, not after the debounce.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveStatus('saving');
 
@@ -176,6 +178,7 @@ export function EntryEditor({
             )}
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             style={{
               background: 'transparent',
@@ -200,7 +203,11 @@ export function EntryEditor({
             value={title}
             placeholder="Give it a title…"
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => saveNow(pendingSaveRef.current)}
+            onBlur={(e) => {
+              const payload = { title: e.target.value, transcript, status };
+              pendingSaveRef.current = payload;
+              saveNow(payload);
+            }}
             style={{
               width: '100%',
               background: 'transparent',
@@ -261,7 +268,11 @@ export function EntryEditor({
               aria-label="Transcript"
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              onBlur={() => saveNow(pendingSaveRef.current)}
+              onBlur={(e) => {
+                const payload = { title, transcript: e.target.value, status };
+                pendingSaveRef.current = payload;
+                saveNow(payload);
+              }}
               placeholder="Audio transcription will appear here…"
               style={{
                 width: '100%',
