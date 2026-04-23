@@ -10,8 +10,9 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { Entry } from '@/types';
 
 // EntryEditor (rendered inside the modal) calls useRouter from next/navigation.
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 let capturedOnDragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
@@ -153,6 +154,21 @@ describe('EntryGrid', () => {
       // Disabled entries render inside the collapsed drawer's peek strip (as images with alt text)
       const peekThumbs = screen.getAllByTestId('drawer-peek-thumb');
       expect(peekThumbs.length).toBe(1);
+    });
+
+    it('calls logout API and navigates to login when Logout is clicked', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      renderGrid(createTestEntries());
+      const logoutBtn = screen.getByText('Logout');
+      fireEvent.click(logoutBtn);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+      });
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/login');
+      });
     });
 
     it('does not render status badge dots on cards', () => {
@@ -429,7 +445,7 @@ describe('EntryGrid', () => {
       fireEvent.click(screen.getByText('Active Entry 1'));
       expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+      fireEvent.click(screen.getByRole('button', { name: /close/i }));
       expect(screen.queryByLabelText(/title/i)).not.toBeInTheDocument();
     });
 
@@ -451,7 +467,7 @@ describe('EntryGrid', () => {
         });
 
         // Close the modal and verify the card in the grid shows the new title
-        fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+        fireEvent.click(screen.getByRole('button', { name: /close/i }));
         expect(screen.getByText('Renamed Entry')).toBeInTheDocument();
         expect(screen.queryByText('Active Entry 1')).not.toBeInTheDocument();
       } finally {

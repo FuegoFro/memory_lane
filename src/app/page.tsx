@@ -11,12 +11,32 @@ export default function HomePage() {
 
   if (entries.length === 0) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
-        <h1 className="text-3xl font-bold mb-4">Memory Lane</h1>
-        <p className="text-gray-400">No memories yet. Add some photos to get started!</p>
+      <div
+        className="h-screen flex flex-col items-center justify-center"
+        style={{ background: 'var(--color-paper)', color: 'var(--color-ink)' }}
+      >
+        <h1
+          className="text-4xl mb-4"
+          style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}
+        >
+          Memory Lane
+        </h1>
+        <p
+          className="mb-8"
+          style={{ color: 'var(--color-ink3)', fontFamily: 'var(--font-news)', fontStyle: 'italic' }}
+        >
+          No memories yet. Add some photos to get started!
+        </p>
         <Link
           href="/edit"
-          className="mt-6 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+          className="px-6 py-2 rounded-full font-medium transition-all"
+          style={{
+            background: 'var(--color-ink)',
+            color: 'var(--color-paper)',
+            fontSize: 12,
+            fontFamily: 'var(--font-sans)',
+            textDecoration: 'none',
+          }}
         >
           Go to Editor
         </Link>

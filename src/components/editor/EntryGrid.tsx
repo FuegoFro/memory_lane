@@ -67,6 +67,11 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
+
   const active = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'active'), [entries]);
   const staging = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'staging'), [entries]);
   const disabled = useMemo(() => entries.filter((e) => getEntryStatus(e) === 'disabled'), [entries]);
@@ -229,6 +234,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
         canPlay={active.length > 0}
         onSync={handleSync}
         onPlay={() => router.push('/')}
+        onLogout={handleLogout}
       />
       <EditorToolbar
         counts={{ active: active.length, staging: staging.length, disabled: disabled.length }}

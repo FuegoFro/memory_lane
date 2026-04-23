@@ -9,9 +9,10 @@ interface EditorMastheadProps {
   canPlay: boolean;
   onSync: () => void;
   onPlay: () => void;
+  onLogout: () => void;
 }
 
-export function EditorMasthead({ tagline, syncing, canPlay, onSync, onPlay }: EditorMastheadProps) {
+export function EditorMasthead({ tagline, syncing, canPlay, onSync, onPlay, onLogout }: EditorMastheadProps) {
   return (
     <header
       style={{
@@ -49,6 +50,9 @@ export function EditorMasthead({ tagline, syncing, canPlay, onSync, onPlay }: Ed
         </span>
       </div>
       <div style={{ flex: 1 }} />
+      <Btn kind="clear" onClick={onLogout} style={{ color: 'var(--color-ink3)' }}>
+        Logout
+      </Btn>
       <Btn kind="ghost" onClick={onSync} disabled={syncing}>
         <Icon name="sync" size={12} /> {syncing ? 'Syncing…' : 'Sync from Dropbox'}
       </Btn>

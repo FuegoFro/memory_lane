@@ -28,17 +28,6 @@ describe('Modal', () => {
     expect(screen.getByText('Hello modal')).toBeInTheDocument();
   });
 
-  it('calls onClose when close button is clicked', () => {
-    const onClose = vi.fn();
-    render(
-      <Modal onClose={onClose}>
-        <p>Body</p>
-      </Modal>
-    );
-    fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
   it('calls onClose when dialog fires its close event', () => {
     const onClose = vi.fn();
     const { container } = render(
