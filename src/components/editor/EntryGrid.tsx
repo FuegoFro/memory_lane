@@ -30,13 +30,21 @@ interface EntryGridProps {
   initialEntries: Entry[];
 }
 
-function toThumbEntry(e: Entry): ThumbEntry {
+function getDropboxSize(density: number): string {
+  if (density >= 7) return 'w480h320';
+  if (density >= 5) return 'w640h480';
+  return 'w960h640';
+}
+
+function toThumbEntry(e: Entry, density?: number): ThumbEntry {
+  const dbSize = density ? getDropboxSize(density) : null;
   return {
     id: e.id,
     title: e.title ?? 'Untitled',
     year: e.created_at ? new Date(e.created_at).getFullYear() : null,
     kind: isVideoFile(e.dropbox_path) ? 'video' : 'photo',
     src: `/api/media/${e.id}`,
+    thumbSrc: dbSize ? `/api/media/${e.id}?size=${dbSize}` : undefined,
     hasNarration: !!e.has_narration,
     duration: null,
   };
@@ -282,7 +290,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
               {fStaging.map((e) => (
                 <Thumb
                   key={e.id}
-                  entry={toThumbEntry(e)}
+                  entry={toThumbEntry(e, density)}
                   selected={selectedIds.has(e.id)}
                   multiSelectActive={selectedIds.size > 0}
                   onToggleSelect={(ev) => toggleSelection(e.id, ev.shiftKey, staging)}
@@ -320,6 +328,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                     <SortableThumb
                       key={e.id}
                       entry={e}
+                      density={density}
                       index={active.findIndex((a) => a.id === e.id) + 1}
                       selected={selectedIds.has(e.id)}
                       multiSelectActive={selectedIds.size > 0}
@@ -333,7 +342,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
             <DragOverlay>
               {activeDragId ? (
                 <Thumb
-                  entry={toThumbEntry(entries.find((e) => e.id === activeDragId)!)}
+                  entry={toThumbEntry(entries.find((e) => e.id === activeDragId)!, density)}
                   selected
                   multiSelectActive
                 />
@@ -366,7 +375,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
             {fDisabled.map((e) => (
               <Thumb
                 key={e.id}
-                entry={toThumbEntry(e)}
+                entry={toThumbEntry(e, density)}
                 selected={selectedIds.has(e.id)}
                 multiSelectActive={selectedIds.size > 0}
                 onToggleSelect={(ev) => toggleSelection(e.id, ev.shiftKey, disabled)}
@@ -407,13 +416,14 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   );
 }
 
-function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onToggleSelect }: {
+function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onToggleSelect, density }: {
   entry: Entry;
   index: number;
   selected: boolean;
   multiSelectActive: boolean;
   onOpen: () => void;
   onToggleSelect: (ev: React.MouseEvent) => void;
+  density: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id });
   return (
@@ -437,15 +447,7 @@ function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onTo
       }}
     >
       <Thumb
-        entry={{
-          id: entry.id,
-          title: entry.title ?? 'Untitled',
-          year: entry.created_at ? new Date(entry.created_at).getFullYear() : null,
-          kind: isVideoFile(entry.dropbox_path) ? 'video' : 'photo',
-          src: `/api/media/${entry.id}`,
-          hasNarration: !!entry.has_narration,
-          duration: null,
-        }}
+        entry={toThumbEntry(entry, density)}
         index={index}
         showPosition
         draggable

@@ -412,7 +412,7 @@ describe('EntryGrid', () => {
 
       const images = screen.getAllByRole('img');
       const srcs = images.map((img) => img.getAttribute('src'));
-      expect(srcs.indexOf('/api/media/entry-1')).toBeLessThan(srcs.indexOf('/api/media/entry-2'));
+      expect(srcs.findIndex(s => s?.includes('/api/media/entry-1'))).toBeLessThan(srcs.findIndex(s => s?.includes('/api/media/entry-2')));
     });
   });
 
