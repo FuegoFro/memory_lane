@@ -20,6 +20,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideControlsTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const autoAdvanceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const isFirstSettingsSync = useRef(true);
 
   const currentEntry = entries[currentIndex];
   const isVideo = currentEntry ? isVideoFile(currentEntry.dropbox_path) : false;
@@ -93,6 +94,19 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
     return () => window.removeEventListener('keydown', onKey);
   }, [goToNext, goToPrev, toggleNarration]);
 
+  // Persist toggle preferences; silently no-ops if unauthenticated
+  useEffect(() => {
+    if (isFirstSettingsSync.current) {
+      isFirstSettingsSync.current = false;
+      return;
+    }
+    fetch('/api/edit/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ autoAdvanceDelay, showTitles }),
+    }).catch(() => {});
+  }, [showTitles, autoAdvanceDelay]);
+
   if (!currentEntry) {
     return (
       <div className="h-screen grid place-items-center" style={{ background: 'var(--color-viewer-bg)', color: 'var(--color-paper)' }}>
@@ -122,47 +136,55 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         }}
       />
 
-      {/* Stage */}
+      {/* Stage: media centered in full viewport */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           display: 'grid',
-          gridTemplateRows: '1fr auto',
+          placeItems: 'center',
           padding: '0 80px',
           zIndex: 1,
         }}
       >
-        <div style={{ display: 'grid', placeItems: 'center' }}>
-          <MediaDisplay
-            entry={currentEntry}
-            isVideo={isVideo}
-            isNarrationPlaying={isNarrationPlaying}
-            onClick={toggleNarration}
-          />
-        </div>
-
-        {/* Caption region */}
-        {showTitles && currentEntry.title ? (
-          <div style={{ padding: '20px 40px 120px', textAlign: 'center', maxWidth: 900, margin: '0 auto' }}>
-            <h2
-              style={{
-                margin: 0,
-                fontFamily: 'var(--font-serif)',
-                fontStyle: 'italic',
-                fontSize: 38,
-                letterSpacing: -0.3,
-                lineHeight: 1.1,
-                color: 'var(--color-paper)',
-              }}
-            >
-              {currentEntry.title}
-            </h2>
-          </div>
-        ) : (
-          <div style={{ height: 120 }} />
-        )}
+        <MediaDisplay
+          entry={currentEntry}
+          isVideo={isVideo}
+          isNarrationPlaying={isNarrationPlaying}
+          onClick={toggleNarration}
+        />
       </div>
+
+      {/* Caption: absolute overlay at bottom, always in-viewport */}
+      {showTitles && currentEntry.title && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '60px 80px 140px',
+            textAlign: 'center',
+            zIndex: 2,
+            background: 'linear-gradient(transparent, rgba(13,8,5,0.65))',
+            pointerEvents: 'none',
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              fontSize: 38,
+              letterSpacing: -0.3,
+              lineHeight: 1.1,
+              color: 'var(--color-paper)',
+            }}
+          >
+            {currentEntry.title}
+          </h2>
+        </div>
+      )}
 
       <NarrationPlayer
         entryId={currentEntry.id}
