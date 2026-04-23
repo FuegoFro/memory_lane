@@ -5,12 +5,14 @@ const mockFilesListFolder = vi.fn()
 const mockFilesGetTemporaryLink = vi.fn()
 const mockFilesUpload = vi.fn()
 const mockFilesDeleteV2 = vi.fn()
+const mockFilesGetThumbnail = vi.fn()
 
 const mockDropboxClient = {
   filesListFolder: mockFilesListFolder,
   filesGetTemporaryLink: mockFilesGetTemporaryLink,
   filesUpload: mockFilesUpload,
   filesDeleteV2: mockFilesDeleteV2,
+  filesGetThumbnail: mockFilesGetThumbnail,
 }
 
 vi.mock('../client', () => ({
@@ -402,6 +404,28 @@ describe('Dropbox file operations', () => {
       expect(getNarrationPath('/photo.jpg')).toBe('/photo.jpg.narration.webm')
       expect(getNarrationPath('/video.mp4')).toBe('/video.mp4.narration.webm')
       expect(getNarrationPath('/path/with spaces/file.png')).toBe('/path/with spaces/file.png.narration.webm')
+    })
+  })
+
+  describe('getThumbnail', () => {
+    it('should return thumbnail data and metadata from Dropbox API', async () => {
+      const mockResult = {
+        fileBinary: Buffer.from('fake thumbnail data'),
+        metadata: { name: 'photo.jpg' },
+      }
+      mockFilesGetThumbnail.mockResolvedValue({ result: mockResult })
+
+      const { getThumbnail } = await import('../files')
+      const result = await getThumbnail('/photo.jpg', 'w64h64')
+
+      expect(result.data).toEqual(mockResult.fileBinary)
+      expect(result.metadata).toEqual(mockResult)
+      expect(mockFilesGetThumbnail).toHaveBeenCalledWith({
+        path: '/photo.jpg',
+        format: { '.tag': 'jpeg' },
+        size: { '.tag': 'w64h64' },
+        mode: { '.tag': 'bestfit' },
+      })
     })
   })
 })

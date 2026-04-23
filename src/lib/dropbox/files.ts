@@ -128,3 +128,21 @@ export async function deleteNarration(mediaPath: string): Promise<void> {
 export function getNarrationPath(mediaPath: string): string {
   return mediaPath + NARRATION_SUFFIX;
 }
+
+export async function getThumbnail(
+  path: string,
+  size: string
+): Promise<{ data: Buffer; metadata: any }> {
+  const client = await getDropboxClient();
+  const response = await client.filesGetThumbnail({
+    path,
+    format: { '.tag': 'jpeg' },
+    size: { '.tag': size as any },
+    mode: { '.tag': 'bestfit' },
+  });
+
+  return {
+    data: (response.result as any).fileBinary as Buffer,
+    metadata: response.result,
+  };
+}
