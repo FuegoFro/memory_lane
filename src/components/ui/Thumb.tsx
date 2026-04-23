@@ -10,6 +10,7 @@ export interface ThumbEntry {
   year: number | null;
   kind: 'photo' | 'video';
   src: string;
+  thumbSrc?: string;
   hasNarration: boolean;
   duration: string | null; // "m:ss" or null
 }
@@ -108,7 +109,7 @@ export function Thumb({
         }}
       >
         <Photo
-          src={entry.src}
+          src={entry.thumbSrc || entry.src}
           alt={entry.title}
           style={{ width: '100%', aspectRatio: '4 / 3' }}
         />
