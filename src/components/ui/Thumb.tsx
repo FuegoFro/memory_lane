@@ -75,8 +75,19 @@ export function Thumb({
       onDragEnd={onDragEnd}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onMouseDown={(e) => {
+        if (e.shiftKey) {
+          // Prevent browser text/image selection on shift-click
+          e.preventDefault();
+        }
+      }}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('[data-thumb-check]')) return;
+        if (e.shiftKey && onToggleSelect) {
+          e.preventDefault();
+          onToggleSelect(e);
+          return;
+        }
         onOpen?.();
       }}
       style={{
@@ -84,6 +95,7 @@ export function Thumb({
         cursor: draggable ? 'grab' : 'pointer',
         opacity: dragging ? 0.3 : 1,
         transition: 'opacity 0.15s',
+        userSelect: 'none',
       }}
     >
       <div
@@ -131,8 +143,15 @@ export function Thumb({
           <div
             data-thumb-check
             data-testid="thumb-check"
+            onMouseDown={(e) => {
+              if (e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             onClick={(e) => {
               e.stopPropagation();
+              if (e.shiftKey) e.preventDefault();
               onToggleSelect?.(e);
             }}
             style={{

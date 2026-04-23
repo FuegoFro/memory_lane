@@ -1,17 +1,32 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { NarrationStudio, NarrationStudioChange } from './NarrationStudio';
+import { Btn } from '@/components/ui/Btn';
+import { Icon } from '@/components/ui/Icon';
+import { Photo } from '@/components/ui/Photo';
+import { Pill } from '@/components/ui/Pill';
 
 interface EntryEditorProps {
   entry: Entry;
   hasNarration?: boolean;
+  activeCount?: number;
+  activeIndex?: number;
   onEntryUpdated?: (entry: Entry) => void;
+  onClose?: () => void;
 }
 
-export function EntryEditor({ entry, hasNarration: initialHasNarration = false, onEntryUpdated }: EntryEditorProps) {
+export function EntryEditor({
+  entry,
+  hasNarration: initialHasNarration = false,
+  activeCount,
+  activeIndex,
+  onEntryUpdated,
+  onClose,
+}: EntryEditorProps) {
+  const router = useRouter();
   const [title, setTitle] = useState(entry.title || '');
   const [transcript, setTranscript] = useState(entry.transcript || '');
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
@@ -75,6 +90,7 @@ export function EntryEditor({ entry, hasNarration: initialHasNarration = false, 
     if (!isChanged && pendingSaveRef.current === null) return;
 
     pendingSaveRef.current = { title, transcript, status };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveStatus('saving');
 
     const timer = setTimeout(() => {
@@ -92,85 +108,218 @@ export function EntryEditor({ entry, hasNarration: initialHasNarration = false, 
     };
   }, [saveNow]);
 
+  const year = entry.created_at ? new Date(entry.created_at).getFullYear() : null;
+  const kindLabel = isVideo ? 'Video' : 'Photo';
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Media Preview */}
-      <div className="mb-6">
+    <div className="entry-editor-grid">
+      {/* Left Column: Media Preview */}
+      <div
+        style={{
+          background: 'var(--color-viewer-bg)',
+          display: 'grid',
+          placeItems: 'center',
+          position: 'relative',
+          padding: 40,
+        }}
+      >
         {isVideo ? (
           <video
             src={`/api/media/${entry.id}`}
             controls
-            className="w-full max-h-96 object-contain bg-black rounded-lg"
+            style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8 }}
           />
         ) : (
-          <img
+          <Photo
             src={`/api/media/${entry.id}`}
-            alt={title || 'Entry preview'}
-            className="w-full max-h-96 object-contain bg-black rounded-lg"
+            alt={title}
+            rounded={8}
+            style={{ maxWidth: '100%', maxHeight: '100%' }}
           />
+        )}
+
+        {status === 'active' && activeIndex !== undefined && activeCount !== undefined && (
+          <div style={{ position: 'absolute', top: 24, left: 24 }}>
+            <Pill bg="rgba(255,255,255,0.1)" fg="var(--color-paper)">
+              POSITION {activeIndex} of {activeCount}
+            </Pill>
+          </div>
         )}
       </div>
 
-      {/* Form Fields */}
-      <div className="space-y-4">
-        {/* Title */}
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
-            Title
-          </label>
+      {/* Right Column: Form */}
+      <div
+        style={{
+          padding: '32px 32px 60px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+          overflowY: 'auto',
+          borderLeft: 'var(--editor-border-left)',
+          borderTop: 'var(--editor-border-top)',
+        }}
+      >
+        {/* Meta Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {year && <Pill bg="var(--color-paper2)" fg="var(--color-ink3)">{year}</Pill>}
+            <Pill bg="var(--color-paper2)" fg="var(--color-ink3)">{kindLabel}</Pill>
+            {saveStatus === 'saving' && (
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-ink3)', textTransform: 'uppercase', animation: 'pulse 1s infinite' }}>
+                Saving…
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#4a5d3a', textTransform: 'uppercase' }}>
+                ✓ Saved
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 0,
+              padding: 4,
+              cursor: 'pointer',
+              color: 'var(--color-ink3)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        {/* Title Input */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label htmlFor="title" style={{ display: 'none' }}>Title</label>
           <input
             id="title"
             type="text"
             value={title}
+            placeholder="Give it a title…"
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onBlur={() => saveNow(pendingSaveRef.current)}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 0,
+              borderBottom: '1px solid var(--color-rule)',
+              padding: '4px 0 12px',
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              fontSize: 24,
+              color: 'var(--color-ink)',
+              outline: 'none',
+            }}
           />
         </div>
 
-        {/* Status */}
-        <div>
-          <label id="status-label" className="block text-sm font-medium text-gray-300 mb-1">
+        {/* Status Pill Control */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Status
-          </label>
-          <SegmentedControl<EntryStatus>
-            options={[
-              { value: 'staging', label: 'Staging' },
-              { value: 'active', label: 'Active' },
-              { value: 'disabled', label: 'Disabled' },
-            ]}
-            value={status}
-            onChange={setStatus}
-            aria-labelledby="status-label"
-          />
+          </span>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--color-paper2)', padding: 4, borderRadius: 999 }}>
+            <StatusBtn
+              label="Just arrived"
+              active={status === 'staging'}
+              dot="var(--color-staging)"
+              onClick={() => setStatus('staging')}
+            />
+            <StatusBtn
+              label="In the slideshow"
+              active={status === 'active'}
+              dot="var(--color-accent)"
+              onClick={() => setStatus('active')}
+            />
+            <StatusBtn
+              label="Set aside"
+              active={status === 'disabled'}
+              dot="var(--color-disabled-ink)"
+              onClick={() => setStatus('disabled')}
+            />
+          </div>
         </div>
 
-        {/* Narration Section */}
+        {/* Narration Studio */}
         <NarrationStudio
           entry={narrationEntry}
           hasNarration={hasNarration}
           onChange={handleNarrationChange}
         />
 
-        {/* Transcript */}
-        <div>
-          <label htmlFor="transcript" className="block text-sm font-medium text-gray-300 mb-1">
-            Transcript
-          </label>
-          <textarea
-            id="transcript"
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            rows={4}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-          />
+        {/* Transcript Textarea */}
+        {hasNarration && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Transcript
+            </span>
+            <textarea
+              id="transcript"
+              aria-label="Transcript"
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              onBlur={() => saveNow(pendingSaveRef.current)}
+              placeholder="Audio transcription will appear here…"
+              style={{
+                width: '100%',
+                minHeight: 120,
+                background: 'transparent',
+                border: 0,
+                fontFamily: 'var(--font-news)',
+                fontStyle: 'italic',
+                fontSize: 16,
+                lineHeight: 1.6,
+                color: 'var(--color-ink2)',
+                resize: 'none',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Navigation / Action */}
+        <div style={{ marginTop: 'auto', paddingTop: 20 }}>
+          {status === 'active' && entry.position !== null && (
+            <Btn kind="primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => router.push('/')}>
+              <Icon name="play" size={12} stroke="var(--color-paper)" />
+              Open in slideshow
+            </Btn>
+          )}
         </div>
       </div>
-
-      {/* Save Status Indicator */}
-      <div className="flex justify-end mt-4 h-8 items-center">
-        {saveStatus === 'saving' && <span className="text-gray-400 text-sm font-medium animate-pulse">Saving...</span>}
-        {saveStatus === 'saved' && <span className="text-green-500 text-sm font-medium">✓ Saved</span>}
-      </div>
     </div>
+  );
+}
+
+function StatusBtn({ label, active, dot, onClick }: { label: string; active: boolean; dot: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: '6px 10px',
+        borderRadius: 999,
+        background: active ? 'var(--color-paper)' : 'transparent',
+        border: 0,
+        color: active ? 'var(--color-ink)' : 'var(--color-ink3)',
+        fontSize: 11,
+        fontWeight: active ? 600 : 500,
+        fontFamily: 'var(--font-sans)',
+        cursor: 'pointer',
+        boxShadow: active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+        transition: 'all 0.2s',
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot }} />
+      {label}
+    </button>
   );
 }

@@ -4,6 +4,7 @@ import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { Entry } from '@/types';
 import { Btn } from '@/components/ui/Btn';
 import { Icon } from '@/components/ui/Icon';
+import { useToast } from '@/components/ui/Toast';
 
 type NarrationState =
   | 'noNarration'
@@ -95,15 +96,24 @@ function Waveform() {
 }
 
 export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStudioProps) {
+  const { showToast } = useToast();
   const [narrationState, setNarrationState] = useState<NarrationState>(
     hasNarration ? 'hasNarration' : 'noNarration'
   );
   const [narrationKey, setNarrationKey] = useState('');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [audioError, setAudioError] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Sync state with prop
+  useEffect(() => {
+    if (narrationState === 'recording' || narrationState === 'uploading' || narrationState === 'transcribing') return;
+    setNarrationState(hasNarration ? 'hasNarration' : 'noNarration');
+    setAudioError(false);
+  }, [hasNarration, narrationState]);
 
   // Tick the recording timer
   useEffect(() => {
@@ -134,17 +144,25 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach((track) => track.stop());
         setNarrationState('uploading');
-        await uploadNarration(blob);
-        setNarrationState('transcribing');
-        await triggerTranscription();
-        setNarrationState('hasNarration');
+        try {
+          await uploadNarration(blob);
+          setNarrationState('transcribing');
+          await triggerTranscription();
+          setNarrationState('hasNarration');
+        } catch (err) {
+          console.error('Narration processing failed:', err);
+          showToast('Failed to process narration', 'error');
+          setNarrationState(hasNarration ? 'hasNarration' : 'noNarration');
+        }
       };
 
       mediaRecorder.start();
       setRecordingSeconds(0);
       setNarrationState('recording');
+      setAudioError(false);
     } catch (err) {
       console.error('Failed to start recording:', err);
+      showToast('Could not access microphone', 'error');
     }
   }
 
@@ -157,10 +175,11 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
   async function uploadNarration(blob: Blob) {
     const formData = new FormData();
     formData.append('audio', blob, 'narration.webm');
-    await fetch(`/api/edit/narration/${entry.id}`, {
+    const res = await fetch(`/api/edit/narration/${entry.id}`, {
       method: 'POST',
       body: formData,
     });
+    if (!res.ok) throw new Error('Upload failed');
     setNarrationKey(Date.now().toString());
     onChange({ has_narration: 1 });
   }
@@ -169,6 +188,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     const res = await fetch(`/api/edit/transcribe/${entry.id}`, {
       method: 'POST',
     });
+    if (!res.ok) throw new Error('Transcription failed');
     const data = await res.json();
     if (data.transcript) {
       onChange({ transcript: data.transcript });
@@ -179,14 +199,19 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     if (!confirm('Are you sure you want to delete the narration?')) {
       return;
     }
-    const res = await fetch(`/api/edit/narration/${entry.id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      return;
+    try {
+      const res = await fetch(`/api/edit/narration/${entry.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        throw new Error('Delete failed');
+      }
+      onChange({ transcript: '', has_narration: 0 });
+      setNarrationState('noNarration');
+    } catch (err) {
+      console.error('Failed to remove narration:', err);
+      showToast('Failed to delete narration', 'error');
     }
-    onChange({ transcript: '', has_narration: 0 });
-    setNarrationState('noNarration');
   }
 
   // Re-record starts a fresh recording, which will overwrite the existing narration
@@ -196,7 +221,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
   }
 
   const playerVisible =
-    narrationState === 'hasNarration' || narrationState === 'transcribing';
+    (narrationState === 'hasNarration' || narrationState === 'transcribing') && !audioError;
   const audioSrc = `/api/narration/${entry.id}${narrationKey ? `?t=${narrationKey}` : ''}`;
 
   const headerRight =
@@ -279,17 +304,19 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
       {/* transcribing (player visible + label) */}
       {narrationState === 'transcribing' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <audio
-            key={narrationKey}
-            src={audioSrc}
-            controls
-            style={{ width: '100%', opacity: 0.5, pointerEvents: 'none' }}
-            onError={() => setNarrationState('noNarration')}
-            onLoadedMetadata={(e) => {
-              const d = (e.target as HTMLAudioElement).duration;
-              if (!isNaN(d) && isFinite(d)) setAudioDuration(d);
-            }}
-          />
+          {playerVisible && (
+            <audio
+              key={narrationKey}
+              src={audioSrc}
+              controls
+              style={{ width: '100%', opacity: 0.5, pointerEvents: 'none' }}
+              onError={() => setAudioError(true)}
+              onLoadedMetadata={(e) => {
+                const d = (e.target as HTMLAudioElement).duration;
+                if (!isNaN(d) && isFinite(d)) setAudioDuration(d);
+              }}
+            />
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Spinner />
             <span style={{ ...monoLabel, color: 'var(--color-ink2)', fontSize: 12 }}>Transcribing…</span>
@@ -306,7 +333,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
               src={audioSrc}
               controls
               style={{ width: '100%' }}
-              onError={() => setNarrationState('noNarration')}
+              onError={() => setAudioError(true)}
               onLoadedMetadata={(e) => {
                 const d = (e.target as HTMLAudioElement).duration;
                 if (!isNaN(d) && isFinite(d)) setAudioDuration(d);

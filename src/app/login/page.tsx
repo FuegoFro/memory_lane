@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import { Btn } from '@/components/ui/Btn';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,16 +36,64 @@ export default function LoginPage() {
     }
   }
 
+  const labelStyle: CSSProperties = {
+    display: 'block',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10,
+    color: 'var(--color-ink3)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.2em',
+    marginBottom: 8,
+  };
+
+  const inputStyle: CSSProperties = {
+    width: '100%',
+    padding: '8px 0',
+    background: 'transparent',
+    border: '0',
+    borderBottom: '1px solid var(--color-rule)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: 14,
+    color: 'var(--color-ink)',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold text-white mb-6 text-center">
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-paper)',
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 360,
+          background: 'var(--color-paper)',
+          padding: 32,
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontStyle: 'italic',
+            fontSize: 28,
+            color: 'var(--color-ink)',
+            marginBottom: 40,
+            textAlign: 'center',
+          }}
+        >
           Memory Lane
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <label htmlFor="password" className="block text-gray-300 mb-1">
+            <label htmlFor="password" style={labelStyle}>
               Password
             </label>
             <input
@@ -52,13 +101,15 @@ export default function LoginPage() {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--color-accent)')}
+              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--color-rule)')}
               required
             />
           </div>
 
           <div>
-            <label htmlFor="totp" className="block text-gray-300 mb-1">
+            <label htmlFor="totp" style={labelStyle}>
               Authenticator Code
             </label>
             <input
@@ -68,22 +119,34 @@ export default function LoginPage() {
               onChange={(e) => setTotp(e.target.value)}
               placeholder="000000"
               maxLength={6}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none tracking-widest text-center text-xl"
+              style={{ ...inputStyle, textAlign: 'center', letterSpacing: '0.5em' }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--color-accent)')}
+              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--color-rule)')}
               required
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm">{error}</p>
+            <p
+              style={{
+                color: 'var(--color-accent)',
+                fontSize: 13,
+                textAlign: 'center',
+                margin: 0,
+              }}
+            >
+              {error}
+            </p>
           )}
 
-          <button
+          <Btn
             type="submit"
+            kind="primary"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{ width: '100%', justifyContent: 'center', height: 40 }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+          </Btn>
         </form>
       </div>
     </div>

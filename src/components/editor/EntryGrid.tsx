@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -84,6 +84,10 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   }
 
   function toggleSelection(entryId: string, shiftKey: boolean, sectionEntries: Entry[]) {
+    // Prevent default browser selection when shift-clicking
+    if (shiftKey) {
+      window.getSelection()?.removeAllRanges();
+    }
     const lastSelected = lastSelectedRef.current;
     lastSelectedRef.current = entryId;
     setSelectedIds((prev) => {
@@ -235,7 +239,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
         onJump={handleJump}
       />
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 32px 100px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 32px 100px', userSelect: 'none' }}>
         {/* Staging — above Active when hot */}
         {stagingHot ? (
           <section id={SECTION_IDS.staging}>
@@ -275,7 +279,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                   entry={toThumbEntry(e)}
                   selected={selectedIds.has(e.id)}
                   multiSelectActive={selectedIds.size > 0}
-                  onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, staging)}
+                  onToggleSelect={(ev) => toggleSelection(e.id, ev.shiftKey, staging)}
                   onOpen={() => setOpenEntryId(e.id)}
                 />
               ))}
@@ -313,7 +317,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                       selected={selectedIds.has(e.id)}
                       multiSelectActive={selectedIds.size > 0}
                       onOpen={() => setOpenEntryId(e.id)}
-                      onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, active)}
+                      onToggleSelect={(ev) => toggleSelection(e.id, ev.shiftKey, active)}
                     />
                   ))}
                 </div>
@@ -358,7 +362,7 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                 entry={toThumbEntry(e)}
                 selected={selectedIds.has(e.id)}
                 multiSelectActive={selectedIds.size > 0}
-                onToggleSelect={(ev) => toggleSelection(e.id, (ev as unknown as { shiftKey: boolean }).shiftKey, disabled)}
+                onToggleSelect={(ev) => toggleSelection(e.id, ev.shiftKey, disabled)}
                 onOpen={() => setOpenEntryId(e.id)}
               />
             ))}
@@ -380,7 +384,14 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
           <EntryEditor
             entry={openEntry}
             hasNarration={!!openEntry.has_narration}
+            activeCount={active.length}
+            activeIndex={
+              getEntryStatus(openEntry) === 'active'
+                ? active.findIndex((e) => e.id === openEntry.id) + 1
+                : undefined
+            }
             onEntryUpdated={handleEntryUpdated}
+            onClose={() => setOpenEntryId(null)}
           />
         </Modal>
       ) : null}
@@ -394,7 +405,7 @@ function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onTo
   selected: boolean;
   multiSelectActive: boolean;
   onOpen: () => void;
-  onToggleSelect: (ev: MouseEvent) => void;
+  onToggleSelect: (ev: React.MouseEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id });
   return (
@@ -403,9 +414,19 @@ function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onTo
       style={{
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         transition,
+        userSelect: 'none',
       }}
       {...attributes}
       {...listeners}
+      onMouseDown={(e) => {
+        if (e.shiftKey) {
+          e.preventDefault();
+        }
+        // dnd-kit listeners might also have onMouseDown
+        if (listeners && listeners.onMouseDown) {
+          listeners.onMouseDown(e);
+        }
+      }}
     >
       <Thumb
         entry={{
@@ -424,7 +445,7 @@ function SortableThumb({ entry, index, selected, multiSelectActive, onOpen, onTo
         selected={selected}
         multiSelectActive={multiSelectActive}
         onOpen={onOpen}
-        onToggleSelect={onToggleSelect as unknown as (e: React.MouseEvent) => void}
+        onToggleSelect={onToggleSelect}
       />
     </div>
   );

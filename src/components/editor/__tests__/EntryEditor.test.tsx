@@ -7,6 +7,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest';
 import { EntryEditor } from '../EntryEditor';
 import { Entry } from '@/types';
+import { ToastProvider } from '@/components/ui/Toast';
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -36,6 +37,14 @@ const createImageEntry = (): Entry => ({
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 });
+
+const renderEditor = (props: Parameters<typeof EntryEditor>[0]) => {
+  return render(
+    <ToastProvider>
+      <EntryEditor {...props} />
+    </ToastProvider>
+  );
+};
 
 const createVideoEntry = (): Entry => ({
   id: 'entry-2',
@@ -67,10 +76,87 @@ describe('EntryEditor', () => {
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
   });
 
+  describe('Redesign specifics (Task 23)', () => {
+    it('changing status does not close the modal or show a toast', async () => {
+      const onEntryUpdated = vi.fn();
+      renderEditor({
+        entry: createImageEntry(),
+        hasNarration: false,
+        onEntryUpdated,
+      });
+
+      // Click "Set aside" (Disabled) status button
+      const setAsideBtn = screen.getByRole('button', { name: /set aside/i });
+      fireEvent.click(setAsideBtn);
+
+      // No toast should appear
+      expect(screen.queryByRole('status')).toBeNull();
+
+      // onEntryUpdated should be called with updated status
+      await waitFor(() => {
+        expect(onEntryUpdated).toHaveBeenCalled();
+        const call = mockFetch.mock.calls.find(c => c[0].includes('/api/edit/entries/entry-1'));
+        expect(JSON.parse(call[1].body).status).toBe('disabled');
+      });
+    });
+
+    it('renders the title input in serif-italic', () => {
+      renderEditor({
+        entry: createImageEntry(),
+        hasNarration: false,
+      });
+
+      const titleInput = screen.getByLabelText(/title/i);
+      expect(titleInput.style.fontFamily).toContain('var(--font-serif)');
+      expect(titleInput.style.fontStyle).toBe('italic');
+    });
+
+    it('editable transcript PUTs transcript to the entry API on blur', async () => {
+      const entry = createImageEntry();
+      entry.has_narration = 1;
+      renderEditor({
+        entry,
+        hasNarration: true,
+        onEntryUpdated: vi.fn(),
+      });
+
+      const transcriptTextarea = screen.getByDisplayValue('This is a test transcript');
+      fireEvent.change(transcriptTextarea, { target: { value: 'Manually edited transcript' } });
+      fireEvent.blur(transcriptTextarea);
+
+      await waitFor(() => {
+        const putCall = mockFetch.mock.calls.find(
+          ([url, opts]) => opts?.method === 'PUT' && url.includes(`/api/edit/entries/${entry.id}`)
+        );
+        expect(putCall).toBeTruthy();
+        expect(JSON.parse(putCall![1].body).transcript).toBe('Manually edited transcript');
+      });
+    });
+
+    it('renders "Open in slideshow" button for active entries', () => {
+      renderEditor({
+        entry: createImageEntry(), // active by default
+        hasNarration: false,
+      });
+
+      expect(screen.getByRole('button', { name: /open in slideshow/i })).toBeInTheDocument();
+    });
+
+    it('calls router.push("/") when "Open in slideshow" is clicked', () => {
+      renderEditor({
+        entry: createImageEntry(),
+        hasNarration: false,
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /open in slideshow/i }));
+      expect(mockPush).toHaveBeenCalledWith('/');
+    });
+  });
+
   describe('Media preview', () => {
     it('renders image preview for image entries', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const img = screen.getByRole('img');
       expect(img).toBeInTheDocument();
@@ -79,7 +165,7 @@ describe('EntryEditor', () => {
 
     it('renders video preview for video entries', () => {
       const entry = createVideoEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const video = document.querySelector('video');
       expect(video).toBeInTheDocument();
@@ -89,7 +175,7 @@ describe('EntryEditor', () => {
 
     it('renders video for .mov files', () => {
       const entry = { ...createImageEntry(), dropbox_path: '/videos/video.mov' };
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const video = document.querySelector('video');
       expect(video).toBeInTheDocument();
@@ -97,7 +183,7 @@ describe('EntryEditor', () => {
 
     it('renders video for .webm files', () => {
       const entry = { ...createImageEntry(), dropbox_path: '/videos/video.webm' };
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const video = document.querySelector('video');
       expect(video).toBeInTheDocument();
@@ -107,7 +193,7 @@ describe('EntryEditor', () => {
   describe('Form fields', () => {
     it('renders title input with entry title', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const titleInput = screen.getByLabelText(/title/i);
       expect(titleInput).toBeInTheDocument();
@@ -116,7 +202,7 @@ describe('EntryEditor', () => {
 
     it('renders title input with empty string when title is null', () => {
       const entry = { ...createImageEntry(), title: null };
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const titleInput = screen.getByLabelText(/title/i);
       expect(titleInput).toHaveValue('');
@@ -124,33 +210,33 @@ describe('EntryEditor', () => {
 
     it('renders status control with active selected for active entry', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-      expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
+      renderEditor({ entry });
+      expect(screen.getByRole('button', { name: 'In the slideshow' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('renders status control with staging selected for entry without position', () => {
       const entry = createVideoEntry();
-      render(<EntryEditor entry={entry} />);
-      expect(screen.getByRole('button', { name: 'Staging' })).toHaveAttribute('aria-pressed', 'true');
+      renderEditor({ entry });
+      expect(screen.getByRole('button', { name: 'Just arrived' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('renders status control with disabled selected for disabled entry', () => {
       const entry = createDisabledEntry();
-      render(<EntryEditor entry={entry} />);
-      expect(screen.getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'true');
+      renderEditor({ entry });
+      expect(screen.getByRole('button', { name: 'Set aside' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('renders all status options', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-      expect(screen.getByRole('button', { name: 'Staging' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Disabled' })).toBeInTheDocument();
+      renderEditor({ entry });
+      expect(screen.getByRole('button', { name: 'Just arrived' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'In the slideshow' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Set aside' })).toBeInTheDocument();
     });
 
     it('renders transcript textarea with entry transcript', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry, hasNarration: true });
 
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       expect(transcriptTextarea).toBeInTheDocument();
@@ -159,7 +245,7 @@ describe('EntryEditor', () => {
 
     it('renders transcript textarea with empty string when transcript is null', () => {
       const entry = createVideoEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry, hasNarration: true });
 
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       expect(transcriptTextarea).toHaveValue('');
@@ -167,7 +253,7 @@ describe('EntryEditor', () => {
 
     it('allows editing the title', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const titleInput = screen.getByLabelText(/title/i);
       fireEvent.change(titleInput, { target: { value: 'New Title' } });
@@ -177,7 +263,7 @@ describe('EntryEditor', () => {
 
     it('allows editing the transcript', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry, hasNarration: true });
 
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       fireEvent.change(transcriptTextarea, { target: { value: 'New transcript' } });
@@ -187,17 +273,17 @@ describe('EntryEditor', () => {
 
     it('allows changing the status', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
-      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
-      expect(screen.getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'false');
+      renderEditor({ entry });
+      fireEvent.click(screen.getByRole('button', { name: 'Set aside' }));
+      expect(screen.getByRole('button', { name: 'Set aside' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'In the slideshow' })).toHaveAttribute('aria-pressed', 'false');
     });
   });
 
   describe('Narration section', () => {
     it('renders audio player when hasNarration is true', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       const audio = document.querySelector('audio');
       expect(audio).toBeInTheDocument();
@@ -207,26 +293,26 @@ describe('EntryEditor', () => {
 
     it('does not render audio player when hasNarration is false', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} hasNarration={false} />);
+      renderEditor({ entry, hasNarration: false });
 
       expect(document.querySelector('audio')).not.toBeInTheDocument();
     });
 
     it('renders record button', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
-      const recordButton = screen.getByRole('button', { name: /record/i });
+      const recordButton = screen.getByRole('button', { name: /^record$/i });
       expect(recordButton).toBeInTheDocument();
     });
 
     it('renders remove button when narration exists', () => {
-      render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
+      renderEditor({ entry: createImageEntry(), hasNarration: true });
       expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument();
     });
 
     it('renders re-record button when narration exists', () => {
-      render(<EntryEditor entry={createImageEntry()} hasNarration={true} />);
+      renderEditor({ entry: createImageEntry(), hasNarration: true });
       expect(screen.getByRole('button', { name: /re-record/i })).toBeInTheDocument();
     });
   });
@@ -242,26 +328,26 @@ describe('EntryEditor', () => {
 
     it('shows no save indicator initially when there are no changes', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
       expect(screen.queryByText('✓ Saved')).not.toBeInTheDocument();
     });
 
-    it('shows "Saving..." immediately when a field changes', async () => {
+    it('shows "Saving…" immediately when a field changes', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
       });
 
-      expect(screen.getByText('Saving...')).toBeInTheDocument();
+      expect(screen.getByText(/Saving/)).toBeInTheDocument();
     });
 
     it('does not call API before the debounce period', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
 
@@ -277,7 +363,7 @@ describe('EntryEditor', () => {
 
     it('calls API with correct payload after 1-second debounce', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
 
@@ -295,11 +381,11 @@ describe('EntryEditor', () => {
 
     it('saves all changed fields together', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry, hasNarration: true });
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Updated Title' } });
       fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'Updated transcript' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Set aside' }));
 
       await act(async () => {
         vi.advanceTimersByTime(1000);
@@ -315,7 +401,7 @@ describe('EntryEditor', () => {
 
     it('debounces rapid changes — only saves the last value', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       const titleInput = screen.getByLabelText(/title/i);
       fireEvent.change(titleInput, { target: { value: 'First' } });
@@ -335,7 +421,7 @@ describe('EntryEditor', () => {
 
     it('shows "✓ Saved" after successful save', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
@@ -353,10 +439,10 @@ describe('EntryEditor', () => {
 
     it('saves when status is changed back to its initial value', async () => {
       const entry = createImageEntry(); // starts as 'active'
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       // Change to 'disabled' and let it save
-      fireEvent.click(screen.getByRole('button', { name: 'Disabled' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Set aside' }));
       await act(async () => {
         vi.advanceTimersByTime(1000);
         await Promise.resolve();
@@ -364,7 +450,7 @@ describe('EntryEditor', () => {
       });
 
       // Change back to 'active' (the original status)
-      fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+      fireEvent.click(screen.getByRole('button', { name: 'In the slideshow' }));
       await act(async () => {
         vi.advanceTimersByTime(1000);
         await Promise.resolve();
@@ -378,7 +464,7 @@ describe('EntryEditor', () => {
 
     it('"✓ Saved" clears after 2 seconds', async () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
@@ -405,7 +491,7 @@ describe('EntryEditor', () => {
       mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(serverResponse) });
 
       const onEntryUpdated = vi.fn();
-      render(<EntryEditor entry={entry} onEntryUpdated={onEntryUpdated} />);
+      renderEditor({ entry, onEntryUpdated });
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Renamed' } });
 
@@ -420,7 +506,7 @@ describe('EntryEditor', () => {
       mockFetch.mockRejectedValueOnce(new Error('network'));
       const entry = createImageEntry();
       const onEntryUpdated = vi.fn();
-      render(<EntryEditor entry={entry} onEntryUpdated={onEntryUpdated} />);
+      renderEditor({ entry, onEntryUpdated });
 
       fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Fail' } });
 
@@ -437,7 +523,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockConfirm.mockReturnValue(false);
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
@@ -449,7 +535,7 @@ describe('EntryEditor', () => {
       const entry = createImageEntry();
       mockConfirm.mockReturnValue(false);
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
@@ -462,7 +548,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       const deleteButton = screen.getByRole('button', { name: /remove/i });
       fireEvent.click(deleteButton);
@@ -479,7 +565,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: () => Promise.resolve({ error: 'Delete failed' }) });
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
       expect(transcriptTextarea).toHaveValue('This is a test transcript');
@@ -503,7 +589,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       // Verify transcript has initial value
       const transcriptTextarea = screen.getByLabelText(/transcript/i);
@@ -513,7 +599,7 @@ describe('EntryEditor', () => {
       fireEvent.click(deleteButton);
 
       await waitFor(() => {
-        expect(transcriptTextarea).toHaveValue('');
+        expect(screen.queryByDisplayValue('This is a test transcript')).not.toBeInTheDocument();
       });
     });
 
@@ -522,7 +608,7 @@ describe('EntryEditor', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       // Audio player is initially visible
       expect(document.querySelector('audio')).toBeInTheDocument();
@@ -591,7 +677,7 @@ describe('EntryEditor', () => {
     it('shows disabled Uploading… button during upload', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {})); // upload never resolves
 
-      render(<EntryEditor entry={createImageEntry()} />);
+      renderEditor({ entry: createImageEntry() });
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
@@ -611,7 +697,7 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload succeeds
         .mockImplementation(() => new Promise(() => {})); // transcription never resolves
 
-      render(<EntryEditor entry={createImageEntry()} />);
+      renderEditor({ entry: createImageEntry() });
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
@@ -633,7 +719,7 @@ describe('EntryEditor', () => {
   describe('Recording UI state', () => {
     it('shows "Record" text initially', () => {
       const entry = createImageEntry();
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       expect(screen.getByRole('button', { name: /^record$/i })).toBeInTheDocument();
     });
@@ -700,7 +786,7 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload narration
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) }); // transcription
 
-      render(<EntryEditor entry={entry} />);
+      renderEditor({ entry });
 
       // Start recording
       const recordButton = screen.getByRole('button', { name: /^record$/i });
@@ -733,7 +819,7 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload narration
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) }); // transcription
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
       // Grab a reference to the original audio element
       const originalAudio = document.querySelector('audio');
@@ -770,19 +856,20 @@ describe('EntryEditor', () => {
         .mockResolvedValueOnce({ ok: true }) // upload narration
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) }); // transcription
 
-      render(<EntryEditor entry={entry} hasNarration={true} />);
+      renderEditor({ entry, hasNarration: true });
 
-      // Simulate audio error to hide the player (transitions to noNarration)
+      // Simulate audio error to hide the player (sets audioError=true)
       const audio = document.querySelector('audio');
       fireEvent.error(audio!);
       await waitFor(() => {
         expect(document.querySelector('audio')).not.toBeInTheDocument();
       });
 
-      // Start recording (noNarration state now shows Record button)
-      const recordButton = screen.getByRole('button', { name: /^record$/i });
+      // We should still be in hasNarration state, but player is hidden.
+      // So we see "Re-record" instead of "Record".
+      const reRecordButton = screen.getByRole('button', { name: /re-record/i });
       await act(async () => {
-        fireEvent.click(recordButton);
+        fireEvent.click(reRecordButton);
         await Promise.resolve();
       });
 

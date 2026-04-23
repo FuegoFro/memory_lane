@@ -5,6 +5,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest';
 import { NarrationStudio } from '../NarrationStudio';
 import { Entry } from '@/types';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -27,6 +28,10 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
   };
 }
 
+const renderWithToast = (ui: React.ReactElement) => {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+};
+
 describe('NarrationStudio', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,13 +39,13 @@ describe('NarrationStudio', () => {
   });
 
   it('renders the Record helper copy in noNarration state', () => {
-    render(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
+    renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
     expect(screen.getByText(/speak as though telling a grandchild/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record/i })).toBeInTheDocument();
   });
 
   it('renders a player and transcript in hasNarration state', () => {
-    render(
+    renderWithToast(
       <NarrationStudio
         entry={makeEntry({ has_narration: 1, transcript: 'Every Sunday.' })}
         hasNarration
@@ -53,7 +58,7 @@ describe('NarrationStudio', () => {
   });
 
   it('renders audio player with correct src when hasNarration', () => {
-    render(
+    renderWithToast(
       <NarrationStudio
         entry={makeEntry({ has_narration: 1, transcript: 'test' })}
         hasNarration
@@ -67,12 +72,12 @@ describe('NarrationStudio', () => {
   });
 
   it('does not render audio player when hasNarration is false', () => {
-    render(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
+    renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
     expect(document.querySelector('audio')).not.toBeInTheDocument();
   });
 
   it('hides audio player when audio fails to load', async () => {
-    render(
+    renderWithToast(
       <NarrationStudio
         entry={makeEntry({ has_narration: 1, transcript: 'test' })}
         hasNarration
@@ -90,7 +95,7 @@ describe('NarrationStudio', () => {
   describe('Remove narration', () => {
     it('shows confirm dialog when clicking Remove', () => {
       mockConfirm.mockReturnValue(false);
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
           hasNarration
@@ -103,7 +108,7 @@ describe('NarrationStudio', () => {
 
     it('does not call API if user cancels confirmation', () => {
       mockConfirm.mockReturnValue(false);
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
           hasNarration
@@ -117,7 +122,7 @@ describe('NarrationStudio', () => {
     it('calls DELETE API when user confirms', async () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
           hasNarration
@@ -134,7 +139,7 @@ describe('NarrationStudio', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
       const onChange = vi.fn();
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
           hasNarration
@@ -151,7 +156,7 @@ describe('NarrationStudio', () => {
       mockConfirm.mockReturnValue(true);
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: () => Promise.resolve({}) });
       const onChange = vi.fn();
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
           hasNarration
@@ -189,7 +194,7 @@ describe('NarrationStudio', () => {
         configurable: true,
       });
 
-      render(
+      renderWithToast(
         <NarrationStudio
           entry={makeEntry({ has_narration: 1, transcript: 'old' })}
           hasNarration
@@ -249,7 +254,7 @@ describe('NarrationStudio', () => {
     });
 
     it('shows Stop button in recording state', async () => {
-      render(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
+      renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
         await Promise.resolve();
@@ -263,7 +268,7 @@ describe('NarrationStudio', () => {
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hi' }) }); // transcribe
 
       const onChange = vi.fn();
-      render(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={onChange} />);
+      renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={onChange} />);
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
         await Promise.resolve();
@@ -294,22 +299,32 @@ describe('NarrationStudio', () => {
       mockFetch
         .mockResolvedValueOnce({ ok: true })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'hello' }) });
+const onChange = vi.fn();
+const { rerender } = renderWithToast(
+  <NarrationStudio entry={makeEntry()} hasNarration={false} onChange={onChange} />
+);
 
-      render(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
-      await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
-        await Promise.resolve();
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /stop/i }));
-        await Promise.resolve();
-        await Promise.resolve();
-      });
+await act(async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await Promise.resolve();
+});
+await act(async () => {
+  fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+  await Promise.resolve();
+  await Promise.resolve();
+});
 
-      await waitFor(() => {
-        const src = document.querySelector('audio')?.getAttribute('src');
-        expect(src).toBe(`/api/narration/e1?t=${fakeNow}`);
-      });
+// Simulating the parent component updating the prop after onChange
+rerender(
+  <ToastProvider>
+    <NarrationStudio entry={makeEntry()} hasNarration={true} onChange={onChange} />
+  </ToastProvider>
+);
+
+await waitFor(() => {
+  const src = document.querySelector('audio')?.getAttribute('src');
+  expect(src).toBe(`/api/narration/e1?t=${fakeNow}`);
+});
 
       vi.restoreAllMocks();
     });
