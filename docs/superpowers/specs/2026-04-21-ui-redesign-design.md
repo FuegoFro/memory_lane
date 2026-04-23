@@ -302,7 +302,7 @@ Header: mono `NARRATION` label left. Mono `{duration} · auto-transcribed` right
 | `recording` | Pulsing red dot + big mono timer + fake waveform (48 accent-color bars, height sinusoidal with elapsed time) + danger `Stop` button. |
 | `uploading` | Spinner + muted "Uploading…" disabled state. Preserves existing behavior. |
 | `transcribing` | Player visible but audio scrubber disabled; "Transcribing…" label. |
-| `reviewing` | Player (play/pause circle + scrubber) + primary `Keep` + ghost `Re-record`. |
+| ~~`reviewing`~~ | ~~Player (play/pause circle + scrubber) + primary `Keep` + ghost `Re-record`.~~ Intentionally omitted — transitions directly to `hasNarration` after transcription. |
 | `hasNarration` | Player + transcript in Newsreader italic below, wrapped in `"…"` + ghost `Re-record` + clear `Remove`. |
 
 ### Transcript editability

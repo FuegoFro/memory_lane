@@ -3848,7 +3848,7 @@ Create `src/components/editor/NarrationStudio.tsx`. Copy the narration-section J
   - `recording`: pulsing red dot + mono timer + fake waveform (48 accent bars) + danger Stop.
   - `uploading`: spinner + disabled "Uploading…" label.
   - `transcribing`: player with disabled scrubber + "Transcribing…" label.
-  - `reviewing`: player + primary Keep + ghost Re-record.
+  - ~~`reviewing`~~: intentionally omitted — after transcription succeeds the component transitions directly to `hasNarration`.
   - `hasNarration`: player + Newsreader italic transcript in `"…"` + ghost Re-record + clear Remove.
 
 Replace the old visual with `Btn`/`Icon`/palette tokens. Keep every fetch/upload/polling call as-is — moving code, not rewriting behavior.
