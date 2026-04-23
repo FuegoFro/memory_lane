@@ -189,7 +189,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     });
     if (!res.ok) throw new Error('Transcription failed');
     const data = await res.json();
-    onChange({ has_narration: 1, transcript: data.transcript || undefined });
+    onChange({ has_narration: 1, transcript: data.transcript ?? undefined });
   }
 
   async function handleRemove() {
