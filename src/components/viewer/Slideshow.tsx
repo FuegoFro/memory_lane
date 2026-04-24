@@ -201,6 +201,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         entryId={currentEntry.id}
         isPlaying={isNarrationPlaying}
         isVideo={isVideo}
+        initialHasNarration={!!currentEntry.has_narration}
         onEnded={() => {
           setIsNarrationPlaying(false);
           if (autoAdvanceDelay > 0) goToNext();

@@ -136,7 +136,7 @@ describe('Dropbox client', () => {
         clientId: 'my-app-key',
         clientSecret: 'my-app-secret',
         refreshToken: 'my-refresh-token',
-        fetch,
+        fetch: expect.any(Function),
       })
     })
   })

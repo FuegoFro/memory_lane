@@ -6,6 +6,7 @@ interface NarrationPlayerProps {
   entryId: string;
   isPlaying: boolean;
   isVideo: boolean;
+  initialHasNarration: boolean;
   onEnded: () => void;
 }
 
@@ -13,26 +14,24 @@ export function NarrationPlayer({
   entryId,
   isPlaying,
   isVideo,
+  initialHasNarration,
   onEnded,
 }: NarrationPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const [hasNarration, setHasNarration] = useState(true);
+  const [hasNarration, setHasNarration] = useState(initialHasNarration);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
   const narrationUrl = `/api/narration/${entryId}`;
 
-  // Reset state when entryId changes
-  // Note: We initialize with hasNarration=true, and the audio element's
-  // onError handler will set it to false if the narration doesn't exist.
-  // This is intentionally using refs to avoid the setState-in-effect pattern.
+  // Reset state when entryId or initialHasNarration changes
   useEffect(() => {
-    // Reset audio element directly instead of using setState
+    setHasNarration(initialHasNarration);
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
     }
-  }, [entryId]);
+  }, [entryId, initialHasNarration]);
 
   // Handle play/pause
   useEffect(() => {
