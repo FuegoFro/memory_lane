@@ -11,8 +11,8 @@ interface SelectionBarProps {
 }
 
 const DESTS: { label: string; status: EntryStatus; dot: string }[] = [
-  { label: 'Slideshow', status: 'active', dot: 'var(--color-accent)' },
   { label: 'Just arrived', status: 'staging', dot: 'var(--color-staging)' },
+  { label: 'Slideshow', status: 'active', dot: 'var(--color-accent)' },
   { label: 'Set aside', status: 'disabled', dot: 'var(--color-disabled-ink)' },
 ];
 

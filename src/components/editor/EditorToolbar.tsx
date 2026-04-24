@@ -15,8 +15,8 @@ interface EditorToolbarProps {
 }
 
 const DEFS: { key: SectionKey; label: string; color: string }[] = [
-  { key: 'active', label: 'In the slideshow', color: 'var(--color-accent)' },
   { key: 'staging', label: 'Just arrived', color: 'var(--color-staging)' },
+  { key: 'active', label: 'In the slideshow', color: 'var(--color-accent)' },
   { key: 'disabled', label: 'Set aside', color: 'var(--color-disabled-ink)' },
 ];
 
