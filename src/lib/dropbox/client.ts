@@ -19,12 +19,22 @@ export async function getDropboxClient(): Promise<Dropbox> {
     throw new Error('Dropbox credentials not configured')
   }
 
+  // Dropbox SDK expects a fetch implementation. 
+  // In Node/Next.js, it might expect a .buffer() method on the response if it detects Node.
+  const dropboxFetch = async (url: any, init: any) => {
+    const res = await fetch(url, init);
+    if (!res.buffer && res.arrayBuffer) {
+      (res as any).buffer = async () => Buffer.from(await res.arrayBuffer());
+    }
+    return res;
+  };
+
   // Create client that will auto-refresh
   const client = new Dropbox({
     clientId: appKey,
     clientSecret: appSecret,
     refreshToken,
-    fetch,
+    fetch: dropboxFetch as any,
   })
 
   cachedClient = client

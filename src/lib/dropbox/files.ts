@@ -141,8 +141,18 @@ export async function getThumbnail(
     mode: { '.tag': 'bestfit' },
   });
 
+  let data: Buffer;
+  if ((response.result as any).fileBinary) {
+    data = (response.result as any).fileBinary;
+  } else if ((response.result as any).fileBlob) {
+    const arrayBuffer = await (response.result as any).fileBlob.arrayBuffer();
+    data = Buffer.from(arrayBuffer);
+  } else {
+    throw new Error('No binary data in Dropbox response');
+  }
+
   return {
-    data: (response.result as any).fileBinary as Buffer,
+    data,
     metadata: response.result,
   };
 }
