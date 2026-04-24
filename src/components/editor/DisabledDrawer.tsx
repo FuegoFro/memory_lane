@@ -59,7 +59,7 @@ export function DisabledDrawer({ entries, open, onToggle, children }: DisabledDr
           {entries.slice(0, 8).map((e) => (
             <div key={e.id} data-testid="drawer-peek-thumb" style={{ flexShrink: 0, width: 80 }}>
               <Photo
-                src={`/api/media/${e.id}`}
+                src={`/api/edit/media/${e.id}`}
                 alt={e.title ?? ''}
                 rounded={4}
                 style={{ width: 80, height: 60, filter: 'grayscale(0.6) opacity(0.6)' }}

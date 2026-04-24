@@ -59,6 +59,23 @@ describe('DisabledDrawer', () => {
     expect(screen.getByTestId('grid-slot')).toBeInTheDocument();
   });
 
+  it('peek thumbnails use the protected edit media endpoint', () => {
+    render(
+      <DisabledDrawer
+        entries={[makeEntry('abc'), makeEntry('def')]}
+        open={false}
+        onToggle={() => {}}
+      >
+        <div />
+      </DisabledDrawer>
+    );
+    const imgs = screen.getAllByRole('img');
+    expect(imgs).toHaveLength(2);
+    imgs.forEach((img) => {
+      expect(img).toHaveAttribute('src', expect.stringContaining('/api/edit/media/'));
+    });
+  });
+
   it('calls onToggle when the header is clicked', () => {
     const onToggle = vi.fn();
     render(
