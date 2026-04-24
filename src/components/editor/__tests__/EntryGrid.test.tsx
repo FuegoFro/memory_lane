@@ -491,7 +491,7 @@ describe('EntryGrid', () => {
     expect(idxStaging).toBeLessThan(idxActive);
   });
 
-  it('renders Just arrived below In the slideshow when staging is empty', () => {
+  it('renders Just arrived above In the slideshow even when staging is empty', () => {
     const entries = [makeEntry({ id: 'active1', position: 1, disabled: 0 })];
     renderGrid(entries);
     const html = document.body.innerHTML;
@@ -499,7 +499,7 @@ describe('EntryGrid', () => {
     const idxActive = html.lastIndexOf('In the slideshow');
     expect(idxActive).toBeGreaterThan(-1);
     expect(idxStaging).toBeGreaterThan(-1);
-    expect(idxStaging).toBeGreaterThan(idxActive);
+    expect(idxStaging).toBeLessThan(idxActive);
   });
 
   it('filters by title via the search input', () => {

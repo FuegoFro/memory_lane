@@ -254,16 +254,16 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
       />
 
       <div style={{ flex: 1, overflow: 'auto', padding: '0 32px 100px', userSelect: 'none' }}>
-        {/* Staging — above Active when hot */}
-        {stagingHot ? (
-          <section id={SECTION_IDS.staging}>
-            <SectionHeader
-              id="sec-staging-header"
-              label="Just arrived"
-              count={staging.length}
-              color="var(--color-staging)"
-              hint={`${staging.length} waiting for review`}
-              rightSlot={
+        {/* Staging — Always at top */}
+        <section id={SECTION_IDS.staging}>
+          <SectionHeader
+            id="sec-staging-header"
+            label="Just arrived"
+            count={staging.length}
+            color="var(--color-staging)"
+            hint={staging.length === 0 ? 'Nothing waiting for review' : `${staging.length} waiting for review`}
+            rightSlot={
+              staging.length > 0 ? (
                 <Btn
                   kind="subtle"
                   onClick={async () => {
@@ -284,8 +284,10 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                 >
                   Add all to slideshow
                 </Btn>
-              }
-            />
+              ) : null
+            }
+          />
+          {staging.length > 0 && (
             <div data-testid="entry-grid-staging" style={gridStyle(density)}>
               {fStaging.map((e) => (
                 <Thumb
@@ -298,8 +300,8 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
                 />
               ))}
             </div>
-          </section>
-        ) : null}
+          )}
+        </section>
 
         {/* Active */}
         <section id={SECTION_IDS.active}>
@@ -350,20 +352,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
             </DragOverlay>
           </DndContext>
         </section>
-
-        {/* Staging when empty — renders below Active */}
-        {!stagingHot ? (
-          <section id={SECTION_IDS.staging}>
-            <SectionHeader
-              id="sec-staging-empty"
-              label="Just arrived"
-              count={0}
-              color="var(--color-staging)"
-              hint="Nothing waiting"
-            />
-            <EmptyState text="New photos from family will show up here first, before they join the slideshow." />
-          </section>
-        ) : null}
 
         {/* Disabled drawer */}
         <DisabledDrawer
