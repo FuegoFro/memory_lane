@@ -25,32 +25,25 @@ describe('entry repository', () => {
       expect(entries).toEqual([]);
     });
 
-    it('returns entries ordered by position first, then disabled entries last', () => {
-      // Create entries with different states
-      createEntry('/path/active1.jpg');
-      createEntry('/path/active2.jpg');
+    it('returns staging entries first, then active entries, then disabled entries last', () => {
+      createEntry('/path/active.jpg');
       createEntry('/path/staging.jpg');
       createEntry('/path/disabled.jpg');
 
-      // Set positions and states
-      const active1 = getEntryByPath('/path/active1.jpg')!;
-      const active2 = getEntryByPath('/path/active2.jpg')!;
+      const active = getEntryByPath('/path/active.jpg')!;
       const disabled = getEntryByPath('/path/disabled.jpg')!;
 
-      updateEntry(active1.id, { position: 1 });
-      updateEntry(active2.id, { position: 0 });
+      updateEntry(active.id, { position: 0 });
       updateEntry(disabled.id, { disabled: true });
 
       const entries = getAllEntries();
-
-      expect(entries.length).toBe(4);
-      // Ordered entries first (position 0, then position 1)
-      expect(entries[0].dropbox_path).toBe('/path/active2.jpg');
-      expect(entries[1].dropbox_path).toBe('/path/active1.jpg');
-      // Then staging entries (position null, not disabled)
-      expect(entries[2].dropbox_path).toBe('/path/staging.jpg');
-      // Then disabled entries last
-      expect(entries[3].dropbox_path).toBe('/path/disabled.jpg');
+      expect(entries.length).toBe(3);
+      // Staging (position null, not disabled) should be first
+      expect(entries[0].dropbox_path).toBe('/path/staging.jpg');
+      // Active should be second
+      expect(entries[1].dropbox_path).toBe('/path/active.jpg');
+      // Disabled should be last
+      expect(entries[2].dropbox_path).toBe('/path/disabled.jpg');
     });
   });
 

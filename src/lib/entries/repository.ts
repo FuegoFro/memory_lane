@@ -6,8 +6,8 @@ export function getAllEntries(): Entry[] {
     SELECT * FROM entries
     ORDER BY
       CASE WHEN disabled = 1 THEN 2
-           WHEN position IS NULL THEN 1
-           ELSE 0
+           WHEN position IS NULL THEN 0 -- Staging is 0
+           ELSE 1                       -- Active is 1
       END,
       position ASC,
       created_at DESC
