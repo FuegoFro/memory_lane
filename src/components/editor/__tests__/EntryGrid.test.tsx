@@ -500,6 +500,10 @@ describe('EntryGrid', () => {
     expect(idxActive).toBeGreaterThan(-1);
     expect(idxStaging).toBeGreaterThan(-1);
     expect(idxStaging).toBeLessThan(idxActive);
+
+    // Assertions for empty staging state
+    expect(screen.getByText(/Nothing waiting for review/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add all to slideshow/)).not.toBeInTheDocument();
   });
 
   it('filters by title via the search input', () => {

@@ -88,7 +88,6 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
   const fStaging = useMemo(() => staging.filter((e) => matchesSearch(e, search)), [staging, search]);
   const fDisabled = useMemo(() => disabled.filter((e) => matchesSearch(e, search)), [disabled, search]);
 
-  const stagingHot = staging.length > 0;
   const openEntry = entries.find((e) => e.id === openEntryId) ?? null;
 
   function handleJump(key: SectionKey) {
