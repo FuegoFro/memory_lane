@@ -16,89 +16,11 @@
 - Modify: `src/components/viewer/ViewerControls.tsx`
 - Test: `src/components/viewer/__tests__/ViewerControls.test.tsx` (create if missing)
 
-- [ ] **Step 1: Create or update tests for ViewerControls**
-
-```tsx
-import { render, screen } from '@testing-library/react';
-import { ViewerControls } from '../ViewerControls';
-import { vi, describe, it, expect } from 'vitest';
-
-describe('ViewerControls', () => {
-  const defaultProps = {
-    visible: true,
-    currentIndex: 0,
-    totalEntries: 10,
-    autoAdvanceDelay: 5,
-    showTitles: true,
-    isNarrationPlaying: false,
-    onPrev: vi.fn(),
-    onNext: vi.fn(),
-    onToggleNarration: vi.fn(),
-    onToggleAutoAdvance: vi.fn(),
-    onToggleTitles: vi.fn(),
-    canPlay: true,
-  };
-
-  it('renders play button when canPlay is true', () => {
-    render(<ViewerControls {...defaultProps} />);
-    expect(screen.getByLabelText(/Play narration/i)).toBeDefined();
-  });
-
-  it('hides play button when canPlay is false', () => {
-    render(<ViewerControls {...defaultProps} canPlay={false} />);
-    expect(screen.queryByLabelText(/Play narration/i)).toBeNull();
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npm test src/components/viewer/__tests__/ViewerControls.test.tsx`
-Expected: FAIL (canPlay prop missing/not used)
-
-- [ ] **Step 3: Update ViewerControls implementation**
-
-```tsx
-interface ViewerControlsProps {
-  // ... existing props
-  canPlay: boolean;
-}
-
-export function ViewerControls({
-  // ... existing props
-  canPlay,
-}: ViewerControlsProps) {
-  // ...
-  {canPlay && (
-    <button
-      aria-label={isNarrationPlaying ? 'Pause narration' : 'Play narration'}
-      onClick={onToggleNarration}
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        background: 'var(--color-paper)',
-        color: 'var(--color-ink)',
-        display: 'grid',
-        placeItems: 'center',
-        border: 0,
-        cursor: 'pointer',
-        boxShadow: '0 4px 16px rgba(26,12,4,0.4)',
-      }}
-    >
-      <Icon name={isNarrationPlaying ? 'pause' : 'play'} size={14} stroke="var(--color-ink)" />
-    </button>
-  )}
-  // ...
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npm test src/components/viewer/__tests__/ViewerControls.test.tsx`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
+- [x] **Step 1: Create or update tests for ViewerControls**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Update ViewerControls implementation**
+- [x] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/viewer/ViewerControls.tsx

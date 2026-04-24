@@ -14,6 +14,7 @@ interface ViewerControlsProps {
   onToggleNarration: () => void;
   onToggleAutoAdvance: () => void;
   onToggleTitles: () => void;
+  canPlay: boolean;
 }
 
 export function ViewerControls({
@@ -28,6 +29,7 @@ export function ViewerControls({
   onToggleNarration,
   onToggleAutoAdvance,
   onToggleTitles,
+  canPlay,
 }: ViewerControlsProps) {
   const chromeClass = `viewer-chrome ${visible ? '' : 'idle'}`;
   const autoAdvanceOn = autoAdvanceDelay > 0;
@@ -92,24 +94,26 @@ export function ViewerControls({
           zIndex: 2,
         }}
       >
-        <button
-          aria-label={isNarrationPlaying ? 'Pause narration' : 'Play narration'}
-          onClick={onToggleNarration}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'var(--color-paper)',
-            color: 'var(--color-ink)',
-            display: 'grid',
-            placeItems: 'center',
-            border: 0,
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(26,12,4,0.4)',
-          }}
-        >
-          <Icon name={isNarrationPlaying ? 'pause' : 'play'} size={14} stroke="var(--color-ink)" />
-        </button>
+        {canPlay && (
+          <button
+            aria-label={isNarrationPlaying ? 'Pause narration' : 'Play narration'}
+            onClick={onToggleNarration}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'var(--color-paper)',
+              color: 'var(--color-ink)',
+              display: 'grid',
+              placeItems: 'center',
+              border: 0,
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(26,12,4,0.4)',
+            }}
+          >
+            <Icon name={isNarrationPlaying ? 'pause' : 'play'} size={14} stroke="var(--color-ink)" />
+          </button>
+        )}
 
         <div style={{ flex: 1 }} />
 
