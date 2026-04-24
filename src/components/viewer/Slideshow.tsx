@@ -24,6 +24,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
 
   const currentEntry = entries[currentIndex];
   const isVideo = currentEntry ? isVideoFile(currentEntry.dropbox_path) : false;
+  const canPlay = currentEntry ? (!!currentEntry.has_narration || isVideo) : false;
 
   const goToNext = useCallback(() => {
     setCurrentIndex((i) => (i + 1) % entries.length);
@@ -35,7 +36,17 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
     setIsNarrationPlaying(false);
   }, [entries.length]);
 
-  const toggleNarration = useCallback(() => setIsNarrationPlaying((p) => !p), []);
+  const toggleNarration = useCallback(() => {
+    if (!canPlay) return;
+    setIsNarrationPlaying((p) => !p);
+  }, [canPlay]);
+
+  // Ensure isNarrationPlaying is reset when entry changes and cannot play
+  useEffect(() => {
+    if (!canPlay && isNarrationPlaying) {
+      setIsNarrationPlaying(false);
+    }
+  }, [currentIndex, canPlay, isNarrationPlaying]);
 
   // Auto-advance
   useEffect(() => {
@@ -208,6 +219,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         onToggleNarration={toggleNarration}
         onToggleAutoAdvance={() => setAutoAdvanceDelay((d) => (d === 0 ? 5 : 0))}
         onToggleTitles={() => setShowTitles((s) => !s)}
+        canPlay={canPlay}
       />
     </div>
   );
