@@ -45,7 +45,6 @@ export function EditorToolbar({
     >
       <div style={{ display: 'flex', gap: 4 }}>
         {DEFS.map((d) => {
-          const hot = d.key === 'staging' && counts.staging > 0;
           return (
             <button
               key={d.key}
@@ -56,8 +55,8 @@ export function EditorToolbar({
                 gap: 7,
                 padding: '6px 12px',
                 borderRadius: 999,
-                background: hot ? 'var(--color-accent-soft)' : 'transparent',
-                border: hot ? '1px solid var(--color-accent)' : '1px solid transparent',
+                background: 'transparent',
+                border: '1px solid transparent',
                 fontSize: 12,
                 color: 'var(--color-ink2)',
                 cursor: 'pointer',

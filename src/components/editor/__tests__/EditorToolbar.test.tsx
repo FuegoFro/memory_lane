@@ -43,7 +43,7 @@ describe('EditorToolbar', () => {
     expect(onJump).toHaveBeenCalledWith('staging');
   });
 
-  it('highlights Just arrived when staging count > 0', () => {
+  it('does not highlight Just arrived when staging count > 0', () => {
     render(
       <EditorToolbar
         counts={counts}
@@ -55,7 +55,8 @@ describe('EditorToolbar', () => {
       />
     );
     const pill = screen.getByText('Just arrived').closest('button') as HTMLElement;
-    expect(pill.style.background).toBe('var(--color-accent-soft)');
+    expect(pill.style.background).toBe('transparent');
+    expect(pill.style.border).toBe('1px solid transparent');
   });
 
   it('emits onSearchChange as the user types', () => {
