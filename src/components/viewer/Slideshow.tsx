@@ -17,6 +17,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
   const [autoAdvanceDelay, setAutoAdvanceDelay] = useState(initialAutoAdvance);
   const [showTitles, setShowTitles] = useState(initialShowTitles);
   const [isNarrationPlaying, setIsNarrationPlaying] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideControlsTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const autoAdvanceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -29,11 +30,13 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
   const goToNext = useCallback(() => {
     setCurrentIndex((i) => (i + 1) % entries.length);
     setIsNarrationPlaying(false);
+    setIsImageLoaded(false);
   }, [entries.length]);
 
   const goToPrev = useCallback(() => {
     setCurrentIndex((i) => (i - 1 + entries.length) % entries.length);
     setIsNarrationPlaying(false);
+    setIsImageLoaded(false);
   }, [entries.length]);
 
   const toggleNarration = useCallback(() => {
@@ -159,15 +162,17 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         }}
       >
         <MediaDisplay
+          key={currentEntry.id}
           entry={currentEntry}
           isVideo={isVideo}
           isNarrationPlaying={isNarrationPlaying}
           onClick={toggleNarration}
+          onLoad={() => setIsImageLoaded(true)}
         />
       </div>
 
       {/* Caption: absolute overlay at bottom, always in-viewport */}
-      {showTitles && currentEntry.title && (
+      {showTitles && currentEntry.title && isImageLoaded && (
         <div
           style={{
             position: 'absolute',

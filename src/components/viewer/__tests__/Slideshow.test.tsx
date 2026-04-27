@@ -5,7 +5,6 @@ import { render, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { Slideshow } from '../Slideshow';
 import { NarrationPlayer } from '../NarrationPlayer';
-import { ViewerControls } from '../ViewerControls';
 
 vi.mock('../NarrationPlayer', () => ({
   NarrationPlayer: vi.fn(() => <div data-testid="narration-player" />),
@@ -111,13 +110,20 @@ describe('Slideshow', () => {
     expect(lastCall[0].isPlaying).toBe(true);
   });
 
-  it('does not toggle narration via keyboard when canPlay is false', () => {
-    const entries = [{
-      id: 'e1', dropbox_path: '/a.jpg', title: 'A',
-      transcript: null, position: 1, disabled: 0, has_narration: 0,
-      created_at: '', updated_at: '',
-    }];
-    render(
+  it('only shows title after image has loaded', () => {
+    const entries = [
+      {
+        id: 'e1', dropbox_path: '/a.jpg', title: 'Title A',
+        transcript: null, position: 1, disabled: 0, has_narration: 0,
+        created_at: '', updated_at: '',
+      },
+      {
+        id: 'e2', dropbox_path: '/b.jpg', title: 'Title B',
+        transcript: null, position: 2, disabled: 0, has_narration: 0,
+        created_at: '', updated_at: '',
+      }
+    ];
+    const { queryByText, getByRole } = render(
       <Slideshow
         entries={entries}
         initialAutoAdvance={0}
@@ -125,10 +131,22 @@ describe('Slideshow', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: ' ' });
+    // Initially title is hidden
+    expect(queryByText('Title A')).toBeNull();
 
-    const narrationPlayerCalls = vi.mocked(NarrationPlayer).mock.calls;
-    const lastCall = narrationPlayerCalls[narrationPlayerCalls.length - 1];
-    expect(lastCall[0].isPlaying).toBe(false);
+    // Simulate image load
+    fireEvent.load(getByRole('img'));
+    expect(queryByText('Title A')).toBeInTheDocument();
+
+    // Navigate to next slide
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    
+    // Title should disappear again
+    expect(queryByText('Title A')).toBeNull();
+    expect(queryByText('Title B')).toBeNull();
+
+    // Simulate next image load
+    fireEvent.load(getByRole('img'));
+    expect(queryByText('Title B')).toBeInTheDocument();
   });
 });

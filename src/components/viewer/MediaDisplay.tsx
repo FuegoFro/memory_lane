@@ -8,6 +8,7 @@ interface MediaDisplayProps {
   isVideo: boolean;
   isNarrationPlaying: boolean;
   onClick: () => void;
+  onLoad?: () => void;
 }
 
 export function MediaDisplay({
@@ -15,6 +16,7 @@ export function MediaDisplay({
   isVideo,
   isNarrationPlaying,
   onClick,
+  onLoad,
 }: MediaDisplayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -38,6 +40,7 @@ export function MediaDisplay({
         src={mediaUrl}
         className="w-full h-full object-contain cursor-pointer"
         onClick={onClick}
+        onLoadedData={onLoad}
         muted // Audio handled separately by NarrationPlayer
         playsInline
       />
@@ -51,6 +54,7 @@ export function MediaDisplay({
       alt={entry.title || 'Slideshow image'}
       className="w-full h-full object-contain cursor-pointer"
       onClick={onClick}
+      onLoad={onLoad}
     />
   );
 }
