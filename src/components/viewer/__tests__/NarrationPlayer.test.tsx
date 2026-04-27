@@ -19,6 +19,7 @@ describe('NarrationPlayer', () => {
         isVideo={false}
         initialHasNarration={true}
         onEnded={onEnded}
+        visible={true}
       />
     );
 
@@ -39,6 +40,7 @@ describe('NarrationPlayer', () => {
         isVideo={false}
         initialHasNarration={true}
         onEnded={onEnded}
+        visible={true}
       />
     );
 
@@ -54,8 +56,35 @@ describe('NarrationPlayer', () => {
         isVideo={false}
         initialHasNarration={false}
         onEnded={vi.fn()}
+        visible={true}
       />
     );
     expect(container.firstChild).toBeNull();
+  });
+
+  it('applies idle class when visible is false', () => {
+    const { container, rerender } = render(
+      <NarrationPlayer
+        entryId="e1"
+        isPlaying={false}
+        isVideo={false}
+        initialHasNarration={true}
+        onEnded={vi.fn()}
+        visible={true}
+      />
+    );
+    expect(container.firstChild).not.toHaveClass('idle');
+
+    rerender(
+      <NarrationPlayer
+        entryId="e1"
+        isPlaying={false}
+        isVideo={false}
+        initialHasNarration={true}
+        onEnded={vi.fn()}
+        visible={false}
+      />
+    );
+    expect(container.firstChild).toHaveClass('idle');
   });
 });

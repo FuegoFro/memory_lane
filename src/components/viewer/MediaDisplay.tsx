@@ -26,7 +26,6 @@ export function MediaDisplay({
         videoRef.current.play();
       } else {
         videoRef.current.pause();
-        videoRef.current.currentTime = 0;
       }
     }
   }, [isNarrationPlaying]);

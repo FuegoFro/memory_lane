@@ -8,6 +8,7 @@ interface NarrationPlayerProps {
   isVideo: boolean;
   initialHasNarration: boolean;
   onEnded: () => void;
+  visible: boolean;
 }
 
 export function NarrationPlayer({
@@ -16,22 +17,22 @@ export function NarrationPlayer({
   isVideo,
   initialHasNarration,
   onEnded,
+  visible,
 }: NarrationPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [hasNarration, setHasNarration] = useState(initialHasNarration);
+  const [lastEntryId, setLastEntryId] = useState(entryId);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const narrationUrl = `/api/narration/${entryId}`;
-
-  // Reset state when entryId or initialHasNarration changes
-  useEffect(() => {
+  if (entryId !== lastEntryId) {
+    setLastEntryId(entryId);
     setHasNarration(initialHasNarration);
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-    }
-  }, [entryId, initialHasNarration]);
+    setCurrentTime(0);
+  }
+
+  const narrationUrl = `/api/narration/${entryId}`;
 
   // Handle play/pause
   useEffect(() => {
@@ -42,7 +43,6 @@ export function NarrationPlayer({
       audio.play().catch(() => setHasNarration(false));
     } else {
       audio.pause();
-      audio.currentTime = 0;
     }
   }, [isPlaying, hasNarration]);
 
@@ -95,8 +95,8 @@ export function NarrationPlayer({
   if (!hasNarration) return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-md"
-    style={{ background: 'rgba(247,240,227,0.12)', border: '1px solid rgba(247,240,227,0.18)' }}>
+    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-md viewer-chrome ${visible ? '' : 'idle'}`}
+    style={{ background: 'rgba(247,240,227,0.12)', border: '1px solid rgba(247,240,227,0.18)', zIndex: 10 }}>
       <audio
         ref={audioRef}
         src={narrationUrl}

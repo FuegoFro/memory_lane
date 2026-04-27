@@ -203,6 +203,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
       )}
 
       <NarrationPlayer
+        key={currentEntry.id}
         entryId={currentEntry.id}
         isPlaying={isNarrationPlaying}
         isVideo={isVideo}
@@ -211,6 +212,7 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
           setIsNarrationPlaying(false);
           if (autoAdvanceDelay > 0) goToNext();
         }}
+        visible={controlsVisible}
       />
 
       <ViewerControls
