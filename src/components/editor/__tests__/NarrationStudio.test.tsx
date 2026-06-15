@@ -106,6 +106,7 @@ describe('NarrationStudio', () => {
         onNarrationStateChange={onStateChange}
       />
     );
+    expect(onStateChange).toHaveBeenCalledTimes(1);
     expect(onStateChange).toHaveBeenCalledWith('hasNarration');
   });
 
@@ -119,6 +120,7 @@ describe('NarrationStudio', () => {
         onNarrationStateChange={onStateChange}
       />
     );
+    expect(onStateChange).toHaveBeenCalledTimes(1);
     expect(onStateChange).toHaveBeenCalledWith('noNarration');
   });
 

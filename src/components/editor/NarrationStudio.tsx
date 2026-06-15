@@ -131,9 +131,11 @@ export function NarrationStudio({ entry, hasNarration, onChange, onNarrationStat
     return () => clearInterval(id);
   }, [narrationState]);
 
+  const onNarrationStateChangeRef = useRef(onNarrationStateChange);
+  useEffect(() => { onNarrationStateChangeRef.current = onNarrationStateChange; });
   useEffect(() => {
-    onNarrationStateChange?.(narrationState);
-  }, [narrationState, onNarrationStateChange]);
+    onNarrationStateChangeRef.current?.(narrationState);
+  }, [narrationState]);
 
   async function startRecording() {
     try {
