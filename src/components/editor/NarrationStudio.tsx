@@ -184,6 +184,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     });
     if (!res.ok) throw new Error('Upload failed');
     setNarrationKey(Date.now().toString());
+    setAudioError(false);
   }
 
   async function triggerTranscription() {
@@ -227,6 +228,8 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
   const headerRight =
     narrationState === 'hasNarration' && audioDuration !== null
       ? formatDuration(audioDuration)
+      : narrationState === 'hasNarration' && audioError
+      ? 'audio unavailable'
       : null;
 
   return (

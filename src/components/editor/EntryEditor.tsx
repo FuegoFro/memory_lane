@@ -36,8 +36,7 @@ export function EntryEditor({
 
   const isVideo = isVideoFile(entry.dropbox_path);
 
-  // NarrationStudio needs a live entry (with current transcript) so the italic
-  // quote in hasNarration state reflects any edits from the transcript field.
+  // NarrationStudio needs a live entry so onChange callbacks reflect current state.
   const narrationEntry: Entry = { ...entry, transcript, has_narration: hasNarration ? 1 : 0 };
 
   function handleNarrationChange(patch: NarrationStudioChange) {
@@ -253,6 +252,7 @@ export function EntryEditor({
 
         {/* Narration Studio */}
         <NarrationStudio
+          key={entry.id}
           entry={narrationEntry}
           hasNarration={hasNarration}
           onChange={handleNarrationChange}
