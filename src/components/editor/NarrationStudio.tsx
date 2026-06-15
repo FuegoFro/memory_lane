@@ -6,7 +6,7 @@ import { Btn } from '@/components/ui/Btn';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
 
-type NarrationState =
+export type NarrationState =
   | 'noNarration'
   | 'hasNarration'
   | 'recording'
@@ -22,6 +22,7 @@ interface NarrationStudioProps {
   entry: Entry;
   hasNarration: boolean;
   onChange: (patch: NarrationStudioChange) => void;
+  onNarrationStateChange?: (state: NarrationState) => void;
 }
 
 const panelStyle: CSSProperties = {
@@ -98,7 +99,7 @@ function Waveform() {
   );
 }
 
-export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStudioProps) {
+export function NarrationStudio({ entry, hasNarration, onChange, onNarrationStateChange }: NarrationStudioProps) {
   const { showToast } = useToast();
   const [narrationState, setNarrationState] = useState<NarrationState>(
     hasNarration ? 'hasNarration' : 'noNarration'
@@ -129,6 +130,10 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
     }, 250);
     return () => clearInterval(id);
   }, [narrationState]);
+
+  useEffect(() => {
+    onNarrationStateChange?.(narrationState);
+  }, [narrationState, onNarrationStateChange]);
 
   async function startRecording() {
     try {

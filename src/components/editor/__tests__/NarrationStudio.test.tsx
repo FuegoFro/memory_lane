@@ -96,6 +96,32 @@ describe('NarrationStudio', () => {
     });
   });
 
+  it('calls onNarrationStateChange with hasNarration on mount when hasNarration=true', () => {
+    const onStateChange = vi.fn();
+    renderWithToast(
+      <NarrationStudio
+        entry={makeEntry({ has_narration: 1 })}
+        hasNarration
+        onChange={() => {}}
+        onNarrationStateChange={onStateChange}
+      />
+    );
+    expect(onStateChange).toHaveBeenCalledWith('hasNarration');
+  });
+
+  it('calls onNarrationStateChange with noNarration on mount when hasNarration=false', () => {
+    const onStateChange = vi.fn();
+    renderWithToast(
+      <NarrationStudio
+        entry={makeEntry()}
+        hasNarration={false}
+        onChange={() => {}}
+        onNarrationStateChange={onStateChange}
+      />
+    );
+    expect(onStateChange).toHaveBeenCalledWith('noNarration');
+  });
+
   describe('Remove narration', () => {
     it('shows confirm dialog when clicking Remove', () => {
       mockConfirm.mockReturnValue(false);
