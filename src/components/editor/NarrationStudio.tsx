@@ -226,9 +226,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
 
   const headerRight =
     narrationState === 'hasNarration' && audioDuration !== null
-      ? `${formatDuration(audioDuration)} · auto-transcribed`
-      : narrationState === 'hasNarration'
-      ? 'auto-transcribed'
+      ? formatDuration(audioDuration)
       : null;
 
   return (

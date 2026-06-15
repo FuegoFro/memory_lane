@@ -175,6 +175,17 @@ describe('NarrationStudio', () => {
     });
   });
 
+  it('does not show "auto-transcribed" label in hasNarration state', () => {
+    renderWithToast(
+      <NarrationStudio
+        entry={makeEntry({ has_narration: 1, transcript: 'hi' })}
+        hasNarration
+        onChange={() => {}}
+      />
+    );
+    expect(screen.queryByText(/auto-transcribed/i)).not.toBeInTheDocument();
+  });
+
   describe('Re-record', () => {
     it('starts a new recording when re-record is clicked in hasNarration state', async () => {
       const mockMediaRecorder = {
