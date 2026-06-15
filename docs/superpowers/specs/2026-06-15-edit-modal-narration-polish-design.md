@@ -104,7 +104,11 @@ Replace the current transcript textarea styles:
 | `resize` | *(unset)* | *(handled by CSS class)* |
 | `outline` | `none` | `none` |
 
-Add `className="transcript-textarea"` to the `<textarea>` element.
+Add `className={styles.transcriptTextarea}` to the `<textarea>` element, importing the module at the top of the file:
+
+```ts
+import styles from './EntryEditor.module.css';
+```
 
 ### 5b. Layout
 
@@ -122,19 +126,17 @@ Make the transcript section fill remaining modal height:
   minHeight: 0,
 }}>
   <span style={…}>Transcript</span>
-  <textarea className="transcript-textarea" … />
+  <textarea className={styles.transcriptTextarea} … />
 </div>
 ```
 
-### 5c. CSS class
+### 5c. CSS Module
 
-**File:** `src/app/globals.css`
-
-Add at the end of the file:
+**File:** `src/components/editor/EntryEditor.module.css` *(new file)*
 
 ```css
 /* Transcript textarea — auto-grow with modal-height cap */
-.transcript-textarea {
+.transcriptTextarea {
   flex: 1;
   min-height: 52px;
   resize: none;
@@ -143,21 +145,23 @@ Add at the end of the file:
   scrollbar-color: var(--color-rule2) transparent;
 }
 
-.transcript-textarea::-webkit-scrollbar { width: 6px; }
-.transcript-textarea::-webkit-scrollbar-track { background: transparent; }
-.transcript-textarea::-webkit-scrollbar-thumb {
+.transcriptTextarea::-webkit-scrollbar { width: 6px; }
+.transcriptTextarea::-webkit-scrollbar-track { background: transparent; }
+.transcriptTextarea::-webkit-scrollbar-thumb {
   background: var(--color-rule2);
   border-radius: 3px;
 }
 
 @supports (field-sizing: content) {
-  .transcript-textarea {
+  .transcriptTextarea {
     flex: none;
     field-sizing: content;
     max-height: 100%;
   }
 }
 ```
+
+This is the first CSS Module in the codebase, introduced here because the styles are specific to `EntryEditor` and carry no semantic value at global scope.
 
 **Behavior:**
 - Browsers without `field-sizing` support: textarea fills all remaining modal height; scrolls if content overflows.
@@ -171,7 +175,7 @@ Add at the end of the file:
 |---|---|
 | `src/components/editor/NarrationStudio.tsx` | Items 1, 2, 3, 4 |
 | `src/components/editor/EntryEditor.tsx` | Item 5a, 5b |
-| `src/app/globals.css` | Item 5c |
+| `src/components/editor/EntryEditor.module.css` | Item 5c (new file) |
 
 ## Tests
 
