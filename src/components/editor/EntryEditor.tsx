@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
 import { NarrationStudio, NarrationStudioChange } from './NarrationStudio';
+import styles from './EntryEditor.module.css';
 import { Btn } from '@/components/ui/Btn';
 import { Icon } from '@/components/ui/Icon';
 import { Photo } from '@/components/ui/Photo';
@@ -259,13 +260,14 @@ export function EntryEditor({
 
         {/* Transcript Textarea */}
         {hasNarration && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Transcript
             </span>
             <textarea
               id="transcript"
               aria-label="Transcript"
+              className={styles.transcriptTextarea}
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               onBlur={(e) => {
@@ -276,16 +278,15 @@ export function EntryEditor({
               placeholder="Audio transcription will appear here…"
               style={{
                 width: '100%',
-                minHeight: 120,
-                background: 'transparent',
-                border: 0,
-                fontFamily: 'var(--font-news)',
-                fontStyle: 'italic',
+                background: 'var(--color-paper)',
+                border: '1px solid var(--color-rule)',
+                borderRadius: 6,
+                fontFamily: 'var(--font-sans)',
                 fontSize: 16,
                 lineHeight: 1.6,
                 color: 'var(--color-ink2)',
-                resize: 'none',
                 outline: 'none',
+                padding: '9px 12px',
               }}
             />
           </div>

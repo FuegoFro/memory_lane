@@ -1,0 +1,23 @@
+.transcriptTextarea {
+  flex: 1;
+  min-height: 52px;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule2) transparent;
+}
+
+.transcriptTextarea::-webkit-scrollbar { width: 6px; }
+.transcriptTextarea::-webkit-scrollbar-track { background: transparent; }
+.transcriptTextarea::-webkit-scrollbar-thumb {
+  background: var(--color-rule2);
+  border-radius: 3px;
+}
+
+@supports (field-sizing: content) {
+  .transcriptTextarea {
+    flex: none;
+    field-sizing: content;
+    max-height: 100%;
+  }
+}

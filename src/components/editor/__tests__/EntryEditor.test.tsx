@@ -151,6 +151,14 @@ describe('EntryEditor', () => {
       fireEvent.click(screen.getByRole('button', { name: /open in slideshow/i }));
       expect(mockPush).toHaveBeenCalledWith('/');
     });
+
+    it('transcript textarea uses the CSS module class for styling', () => {
+      const entry = { ...createImageEntry(), has_narration: 1 };
+      renderEditor({ entry, hasNarration: true });
+
+      const textarea = screen.getByLabelText(/transcript/i);
+      expect(textarea.className).toMatch(/transcriptTextarea/);
+    });
   });
 
   describe('Media preview', () => {
