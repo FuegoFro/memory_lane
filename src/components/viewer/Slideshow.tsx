@@ -155,9 +155,9 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         style={{
           position: 'absolute',
           inset: 0,
-          display: 'grid',
-          placeItems: 'center',
-          padding: '0 80px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           zIndex: 1,
         }}
       >
