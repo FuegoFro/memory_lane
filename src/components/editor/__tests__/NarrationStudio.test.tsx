@@ -38,10 +38,14 @@ describe('NarrationStudio', () => {
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
   });
 
-  it('renders the Record helper copy in noNarration state', () => {
+  it('renders a Record button in noNarration state', () => {
     renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
-    expect(screen.getByText(/speak as though telling a grandchild/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record/i })).toBeInTheDocument();
+  });
+
+  it('does not render prompt copy in noNarration state', () => {
+    renderWithToast(<NarrationStudio entry={makeEntry()} hasNarration={false} onChange={() => {}} />);
+    expect(screen.queryByText(/speak as though telling/i)).not.toBeInTheDocument();
   });
 
   it('renders a player and transcript in hasNarration state', () => {

@@ -240,25 +240,11 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
 
       {/* noNarration */}
       {narrationState === 'noNarration' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontSize: 16,
-              color: 'var(--color-ink2)',
-              lineHeight: 1.45,
-            }}
-          >
-            Speak as though telling a grandchild — who, when, where, why it mattered.
-          </p>
-          <div>
-            <Btn kind="accent" onClick={startRecording}>
-              <Icon name="mic" size={14} stroke="var(--color-paper)" />
-              Record
-            </Btn>
-          </div>
+        <div>
+          <Btn kind="accent" onClick={startRecording}>
+            <Icon name="mic" size={14} stroke="var(--color-paper)" />
+            Record
+          </Btn>
         </div>
       )}
 
