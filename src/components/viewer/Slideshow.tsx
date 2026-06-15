@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Entry, isVideoFile } from '@/types';
+
 import { MediaDisplay } from './MediaDisplay';
 import { NarrationPlayer } from './NarrationPlayer';
 import { ViewerControls } from './ViewerControls';
@@ -50,6 +51,21 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
       setIsNarrationPlaying(false);
     }
   }, [currentIndex, canPlay, isNarrationPlaying]);
+
+  // Preload adjacent images so sequential navigation hits browser cache
+  useEffect(() => {
+    const indices = [
+      (currentIndex + 1) % entries.length,
+      (currentIndex - 1 + entries.length) % entries.length,
+    ];
+    for (const i of indices) {
+      const entry = entries[i];
+      if (entry && !isVideoFile(entry.dropbox_path)) {
+        const img = new Image();
+        img.src = `/api/media/${entry.id}`;
+      }
+    }
+  }, [currentIndex, entries]);
 
   // Auto-advance
   useEffect(() => {
@@ -162,7 +178,6 @@ export function Slideshow({ entries, initialAutoAdvance, initialShowTitles }: Sl
         }}
       >
         <MediaDisplay
-          key={currentEntry.id}
           entry={currentEntry}
           isVideo={isVideo}
           isNarrationPlaying={isNarrationPlaying}

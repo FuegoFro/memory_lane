@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { Slideshow } from '../Slideshow';
@@ -148,5 +148,45 @@ describe('Slideshow', () => {
     // Simulate next image load
     fireEvent.load(getByRole('img'));
     expect(queryByText('Title B')).toBeInTheDocument();
+  });
+
+  it('reuses the same img element when navigating to the next entry', () => {
+    const entries = [
+      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+    ];
+    const { getByRole } = render(
+      <Slideshow entries={entries} initialAutoAdvance={0} initialShowTitles={false} />
+    );
+
+    const imgBefore = getByRole('img');
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    const imgAfter = getByRole('img');
+
+    expect(imgAfter).toBe(imgBefore);
+  });
+
+  it('preloads the next entry image after navigating forward', () => {
+    const preloadedUrls: string[] = [];
+    class MockImage {
+      set src(val: string) { preloadedUrls.push(val); }
+    }
+    vi.stubGlobal('Image', MockImage);
+
+    const entries = [
+      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+      { id: 'e3', dropbox_path: '/c.jpg', title: 'C', transcript: null, position: 3, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+    ];
+    render(<Slideshow entries={entries} initialAutoAdvance={0} initialShowTitles={false} />);
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' }); // now at index 1 (e2)
+
+    // Should have preloaded e3 (next from e2)
+    expect(preloadedUrls).toContain('/api/media/e3');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 });
