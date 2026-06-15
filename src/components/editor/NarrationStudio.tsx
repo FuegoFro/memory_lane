@@ -73,6 +73,8 @@ function Waveform() {
         gap: 2,
         height: 28,
         flex: 1,
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
       {bars.map((i) => {
@@ -87,6 +89,7 @@ function Waveform() {
               height: `${h}px`,
               background: 'var(--color-accent)',
               borderRadius: 1,
+              flexShrink: 0,
             }}
           />
         );
@@ -250,7 +253,7 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
 
       {/* recording */}
       {narrationState === 'recording' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, overflow: 'hidden' }}>
           <span
             className="rec-pulse"
             aria-hidden
