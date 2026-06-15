@@ -386,6 +386,31 @@ describe('EntryGrid', () => {
       });
     });
 
+    it('places a dragged entry after the drop target when dragging forward', async () => {
+      const entries = [
+        makeEntry({ id: 'e1', title: 'Entry 1', position: 1, disabled: 0 }),
+        makeEntry({ id: 'e2', title: 'Entry 2', position: 2, disabled: 0 }),
+        makeEntry({ id: 'e3', title: 'Entry 3', position: 3, disabled: 0 }),
+      ];
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+
+      renderGrid(entries);
+
+      // Drag e1 forward to over e3 — e1 should land AFTER e3: [e2, e3, e1]
+      act(() => {
+        capturedOnDragStart?.({ active: { id: 'e1' } });
+        capturedOnDragEnd!({ active: { id: 'e1' }, over: { id: 'e3' } });
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/edit/entries/reorder', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedIds: ['e2', 'e3', 'e1'] }),
+        });
+      });
+    });
+
     it('does not call reorder API when dropped on the same card', () => {
       renderGrid(createTestEntries());
       act(() => {

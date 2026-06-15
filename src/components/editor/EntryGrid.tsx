@@ -201,10 +201,13 @@ export function EntryGrid({ initialEntries }: EntryGridProps) {
     const movingActive = activeList.filter((e) => movingSet.has(e.id));
     const targetIdx = stayActive.findIndex((e) => e.id === overId);
     if (targetIdx === -1) return;
+    const originalIdx = activeList.findIndex((e) => e.id === moving[0]);
+    const overIdxInActive = activeList.findIndex((e) => e.id === overId);
+    const insertIdx = originalIdx < overIdxInActive ? targetIdx + 1 : targetIdx;
     const newActive = [
-      ...stayActive.slice(0, targetIdx),
+      ...stayActive.slice(0, insertIdx),
       ...movingActive,
-      ...stayActive.slice(targetIdx),
+      ...stayActive.slice(insertIdx),
     ];
     setEntries([...newActive, ...rest]);
 
