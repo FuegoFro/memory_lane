@@ -327,21 +327,6 @@ export function NarrationStudio({ entry, hasNarration, onChange }: NarrationStud
             />
           )}
 
-          {entry.transcript ? (
-            <p
-              style={{
-                margin: 0,
-                fontFamily: 'var(--font-news)',
-                fontStyle: 'italic',
-                fontSize: 16,
-                color: 'var(--color-ink2)',
-                lineHeight: 1.5,
-              }}
-            >
-              &ldquo;{entry.transcript}&rdquo;
-            </p>
-          ) : null}
-
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn kind="ghost" onClick={handleReRecord}>
               <Icon name="rotate" size={12} />

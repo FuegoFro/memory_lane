@@ -48,7 +48,7 @@ describe('NarrationStudio', () => {
     expect(screen.queryByText(/speak as though telling/i)).not.toBeInTheDocument();
   });
 
-  it('renders a player and transcript in hasNarration state', () => {
+  it('renders a player and re-record/remove buttons in hasNarration state', () => {
     renderWithToast(
       <NarrationStudio
         entry={makeEntry({ has_narration: 1, transcript: 'Every Sunday.' })}
@@ -56,7 +56,7 @@ describe('NarrationStudio', () => {
         onChange={() => {}}
       />
     );
-    expect(screen.getByText(/Every Sunday\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Every Sunday\./)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /re-record/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument();
   });
