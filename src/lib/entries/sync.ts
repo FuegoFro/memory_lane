@@ -21,7 +21,7 @@ export async function syncFromDropbox(): Promise<SyncResult> {
   // Add new files and sync narration status for existing ones
   for (const file of dropboxFiles) {
     if (!existingPaths.has(file.path)) {
-      const entry = createEntry(file.path);
+      const entry = createEntry(file.path, file.takenAt);
       if (file.hasNarration) {
         updateEntry(entry.id, { has_narration: true });
       }
