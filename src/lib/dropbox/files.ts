@@ -31,6 +31,7 @@ function isVideoFile(name: string): boolean {
   return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+// Bounds parallel Dropbox metadata requests to avoid hitting rate limits while keeping sync fast.
 const METADATA_CONCURRENCY = 8;
 
 async function resolveTakenAt(
@@ -42,7 +43,8 @@ async function resolveTakenAt(
       path,
       include_media_info: true,
     });
-    const meta = response.result as files.FileMetadata;
+    // Path always comes from a listFolder file entry, so result is always a FileMetadataReference.
+    const meta = response.result as files.FileMetadataReference;
     const mediaInfo = meta.media_info;
     const timeTaken =
       mediaInfo && mediaInfo['.tag'] === 'metadata'
