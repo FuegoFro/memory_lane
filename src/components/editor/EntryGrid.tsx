@@ -24,7 +24,7 @@ import { Btn } from '@/components/ui/Btn';
 import { Modal } from '@/components/ui/Modal';
 import { EntryEditor } from './EntryEditor';
 import { useToast } from '@/components/ui/Toast';
-import { SECTION_IDS } from './shared';
+import { SECTION_IDS, yearFromTakenAt } from './shared';
 
 interface EntryGridProps {
   initialEntries: Entry[];
@@ -41,7 +41,7 @@ function toThumbEntry(e: Entry, density?: number): ThumbEntry {
   return {
     id: e.id,
     title: e.title ?? 'Untitled',
-    year: e.taken_at ? new Date(e.taken_at).getFullYear() : null,
+    year: yearFromTakenAt(e.taken_at),
     kind: isVideoFile(e.dropbox_path) ? 'video' : 'photo',
     src: `/api/media/${e.id}`,
     thumbSrc: dbSize ? `/api/media/${e.id}?size=${dbSize}` : undefined,
@@ -55,7 +55,8 @@ function matchesSearch(e: Entry, q: string): boolean {
   const needle = q.toLowerCase().trim();
   if ((e.title ?? '').toLowerCase().includes(needle)) return true;
   if ((e.transcript ?? '').toLowerCase().includes(needle)) return true;
-  if (e.taken_at && new Date(e.taken_at).getFullYear().toString().includes(needle)) return true;
+  const year = yearFromTakenAt(e.taken_at);
+  if (year !== null && year.toString().includes(needle)) return true;
   return false;
 }
 

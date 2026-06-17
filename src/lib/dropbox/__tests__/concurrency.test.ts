@@ -20,6 +20,8 @@ describe('mapWithConcurrency', () => {
     }
     await mapWithConcurrency([1, 2, 3, 4, 5, 6, 7, 8], 3, fn)
     expect(maxActive).toBeLessThanOrEqual(3)
+    // Guard against a regression to serial execution.
+    expect(maxActive).toBeGreaterThan(1)
   })
 
   it('returns an empty array for empty input without calling fn', async () => {

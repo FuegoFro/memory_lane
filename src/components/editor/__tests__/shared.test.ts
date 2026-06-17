@@ -9,4 +9,8 @@ describe('yearFromTakenAt', () => {
   it('returns null when the date is null', () => {
     expect(yearFromTakenAt(null)).toBeNull()
   })
+
+  it('returns null for an unparseable date string', () => {
+    expect(yearFromTakenAt('not-a-date')).toBeNull()
+  })
 })

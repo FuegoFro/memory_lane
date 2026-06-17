@@ -9,6 +9,7 @@ import { Btn } from '@/components/ui/Btn';
 import { Icon } from '@/components/ui/Icon';
 import { Photo } from '@/components/ui/Photo';
 import { Pill } from '@/components/ui/Pill';
+import { yearFromTakenAt } from './shared';
 
 interface EntryEditorProps {
   entry: Entry;
@@ -115,7 +116,7 @@ export function EntryEditor({
     };
   }, [saveNow]);
 
-  const year = entry.taken_at ? new Date(entry.taken_at).getFullYear() : null;
+  const year = yearFromTakenAt(entry.taken_at);
   const kindLabel = isVideo ? 'Video' : 'Photo';
 
   return (
