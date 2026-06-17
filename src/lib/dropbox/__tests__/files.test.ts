@@ -6,6 +6,7 @@ const mockFilesGetTemporaryLink = vi.fn()
 const mockFilesUpload = vi.fn()
 const mockFilesDeleteV2 = vi.fn()
 const mockFilesGetThumbnail = vi.fn()
+const mockFilesGetMetadata = vi.fn()
 
 const mockDropboxClient = {
   filesListFolder: mockFilesListFolder,
@@ -13,6 +14,7 @@ const mockDropboxClient = {
   filesUpload: mockFilesUpload,
   filesDeleteV2: mockFilesDeleteV2,
   filesGetThumbnail: mockFilesGetThumbnail,
+  filesGetMetadata: mockFilesGetMetadata,
 }
 
 vi.mock('../client', () => ({
@@ -27,6 +29,13 @@ describe('Dropbox file operations', () => {
   })
 
   describe('listMediaFiles', () => {
+    beforeEach(() => {
+      // Default: metadata call returns client_modified, no media_info
+      mockFilesGetMetadata.mockResolvedValue({
+        result: { client_modified: '2021-07-04T10:00:00Z' },
+      })
+    })
+
     it('should return an array of media files from the Dropbox folder', async () => {
       mockFilesListFolder.mockResolvedValue({
         result: {
@@ -56,6 +65,7 @@ describe('Dropbox file operations', () => {
         name: 'vacation.jpg',
         isVideo: false,
         hasNarration: false,
+        takenAt: '2021-07-04T10:00:00Z',
       })
     })
 
@@ -225,6 +235,74 @@ describe('Dropbox file operations', () => {
       await listMediaFiles()
 
       expect(mockFilesListFolder).toHaveBeenCalledWith({ path: '' })
+    })
+
+    describe('takenAt resolution', () => {
+      beforeEach(() => {
+        mockFilesListFolder.mockResolvedValue({
+          result: {
+            entries: [
+              { '.tag': 'file', name: 'a.jpg', path_display: '/a.jpg', path_lower: '/a.jpg' },
+            ],
+          },
+        })
+      })
+
+      it('uses media_info.time_taken when present', async () => {
+        mockFilesGetMetadata.mockResolvedValue({
+          result: {
+            client_modified: '2021-07-04T10:00:00Z',
+            media_info: {
+              '.tag': 'metadata',
+              metadata: { time_taken: '2019-12-25T08:30:00Z' },
+            },
+          },
+        })
+
+        const { listMediaFiles } = await import('../files')
+        const files = await listMediaFiles()
+
+        expect(files[0].takenAt).toBe('2019-12-25T08:30:00Z')
+        expect(mockFilesGetMetadata).toHaveBeenCalledWith({
+          path: '/a.jpg',
+          include_media_info: true,
+        })
+      })
+
+      it('falls back to client_modified when time_taken is absent', async () => {
+        mockFilesGetMetadata.mockResolvedValue({
+          result: { client_modified: '2021-07-04T10:00:00Z' },
+        })
+
+        const { listMediaFiles } = await import('../files')
+        const files = await listMediaFiles()
+
+        expect(files[0].takenAt).toBe('2021-07-04T10:00:00Z')
+      })
+
+      it('falls back to client_modified when media_info is still pending', async () => {
+        mockFilesGetMetadata.mockResolvedValue({
+          result: {
+            client_modified: '2021-07-04T10:00:00Z',
+            media_info: { '.tag': 'pending' },
+          },
+        })
+
+        const { listMediaFiles } = await import('../files')
+        const files = await listMediaFiles()
+
+        expect(files[0].takenAt).toBe('2021-07-04T10:00:00Z')
+      })
+
+      it('falls back to a timestamp when the metadata call throws', async () => {
+        mockFilesGetMetadata.mockRejectedValue(new Error('rate limited'))
+
+        const { listMediaFiles } = await import('../files')
+        const files = await listMediaFiles()
+
+        expect(typeof files[0].takenAt).toBe('string')
+        expect(Number.isNaN(Date.parse(files[0].takenAt))).toBe(false)
+      })
     })
   })
 

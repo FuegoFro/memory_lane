@@ -1,11 +1,13 @@
 import { getDropboxClient, getDropboxFolder } from './client';
 import type { files } from 'dropbox';
+import { mapWithConcurrency } from './concurrency';
 
 export interface DropboxFile {
   path: string;
   name: string;
   isVideo: boolean;
   hasNarration: boolean;
+  takenAt: string;
 }
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -29,6 +31,30 @@ function isVideoFile(name: string): boolean {
   return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+const METADATA_CONCURRENCY = 8;
+
+async function resolveTakenAt(
+  client: Awaited<ReturnType<typeof getDropboxClient>>,
+  path: string
+): Promise<string> {
+  try {
+    const response = await client.filesGetMetadata({
+      path,
+      include_media_info: true,
+    });
+    const meta = response.result as files.FileMetadata;
+    const mediaInfo = meta.media_info;
+    const timeTaken =
+      mediaInfo && mediaInfo['.tag'] === 'metadata'
+        ? mediaInfo.metadata.time_taken
+        : undefined;
+    return timeTaken ?? meta.client_modified ?? new Date().toISOString();
+  } catch {
+    // A single failed metadata lookup must not fail the whole sync.
+    return new Date().toISOString();
+  }
+}
+
 export async function listMediaFiles(): Promise<DropboxFile[]> {
   const client = await getDropboxClient();
   const folder = getDropboxFolder();
@@ -46,19 +72,27 @@ export async function listMediaFiles(): Promise<DropboxFile[]> {
   );
 
   // Filter to media files and check for narrations
-  const mediaFiles: DropboxFile[] = allEntries
-    .filter((e): e is files.FileMetadataReference =>
+  const mediaEntries = allEntries.filter(
+    (e): e is files.FileMetadataReference =>
       e['.tag'] === 'file' && isMediaFile(e.name)
-    )
-    .map((entry) => {
+  );
+
+  const mediaFiles = await mapWithConcurrency(
+    mediaEntries,
+    METADATA_CONCURRENCY,
+    async (entry): Promise<DropboxFile> => {
+      const path = entry.path_display || entry.path_lower || '';
       const narrationPath = (entry.path_lower + NARRATION_SUFFIX).toLowerCase();
+      const takenAt = await resolveTakenAt(client, path);
       return {
-        path: entry.path_display || entry.path_lower || '',
+        path,
         name: entry.name,
         isVideo: isVideoFile(entry.name),
         hasNarration: narrationPaths.has(narrationPath),
+        takenAt,
       };
-    });
+    }
+  );
 
   return mediaFiles;
 }
