@@ -23,8 +23,9 @@ export async function getDropboxClient(): Promise<Dropbox> {
   // In Node/Next.js, it might expect a .buffer() method on the response if it detects Node.
   const dropboxFetch = async (url: any, init: any) => {
     const res = await fetch(url, init);
-    if (!res.buffer && res.arrayBuffer) {
-      (res as any).buffer = async () => Buffer.from(await res.arrayBuffer());
+    const resWithBuffer = res as Response & { buffer?: () => Promise<Buffer> };
+    if (!resWithBuffer.buffer && res.arrayBuffer) {
+      resWithBuffer.buffer = async () => Buffer.from(await res.arrayBuffer());
     }
     return res;
   };

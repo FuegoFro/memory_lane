@@ -99,7 +99,7 @@ describe('EntryEditor', () => {
       await waitFor(() => {
         expect(onEntryUpdated).toHaveBeenCalled();
         const call = mockFetch.mock.calls.find(c => c[0].includes('/api/edit/entries/entry-1'));
-        expect(JSON.parse(call[1].body).status).toBe('disabled');
+        expect(JSON.parse(call![1].body).status).toBe('disabled');
       });
     });
 

@@ -24,7 +24,7 @@ export async function GET(
 
     if (size && SUPPORTED_SIZES.includes(size)) {
       const { data } = await getThumbnail(entry.dropbox_path, size);
-      return new NextResponse(data, {
+      return new NextResponse(new Uint8Array(data), {
         headers: {
           'Content-Type': 'image/jpeg',
           'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
