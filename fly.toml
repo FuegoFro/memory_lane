@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'memory-lane-empty-sky-7871'
+app = 'memory-lane-slideshow'
 primary_region = 'sjc'
 
 [build]
