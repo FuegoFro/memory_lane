@@ -111,21 +111,21 @@ describe('entry repository', () => {
       expect(entries.every(e => e.disabled === 0)).toBe(true);
     });
 
-    it('returns entries ordered by created_at DESC', () => {
+    it('returns entries ordered by taken_at DESC', () => {
       // Create entries with explicit timestamps to test ordering
-      // Insert directly with different timestamps for reliable ordering
+      // Insert directly with different taken_at timestamps for reliable ordering
       db.exec(`
-        INSERT INTO entries (id, dropbox_path, created_at, updated_at)
+        INSERT INTO entries (id, dropbox_path, taken_at, created_at, updated_at)
         VALUES
-          ('id-first', '/path/first.jpg', '2024-01-01 10:00:00', '2024-01-01 10:00:00'),
-          ('id-second', '/path/second.jpg', '2024-01-01 11:00:00', '2024-01-01 11:00:00'),
-          ('id-third', '/path/third.jpg', '2024-01-01 12:00:00', '2024-01-01 12:00:00')
+          ('id-first', '/path/first.jpg', '2024-01-01 10:00:00', '2024-01-01 10:00:00', '2024-01-01 10:00:00'),
+          ('id-second', '/path/second.jpg', '2024-01-01 11:00:00', '2024-01-01 11:00:00', '2024-01-01 11:00:00'),
+          ('id-third', '/path/third.jpg', '2024-01-01 12:00:00', '2024-01-01 12:00:00', '2024-01-01 12:00:00')
       `);
 
       const entries = getStagingEntries();
 
       expect(entries.length).toBe(3);
-      // Most recently created should be first
+      // Most recent taken_at should be first
       expect(entries[0].dropbox_path).toBe('/path/third.jpg');
       expect(entries[1].dropbox_path).toBe('/path/second.jpg');
       expect(entries[2].dropbox_path).toBe('/path/first.jpg');
@@ -359,6 +359,32 @@ describe('entry repository', () => {
       const result = deleteEntry('non-existent-id');
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('createEntry with takenAt', () => {
+    it('persists the provided takenAt value', () => {
+      createEntry('/path/photo.jpg', '2019-12-25T08:30:00Z');
+      const entry = getEntryByPath('/path/photo.jpg')!;
+      expect(entry.taken_at).toBe('2019-12-25T08:30:00Z');
+    });
+
+    it('defaults taken_at to a valid timestamp when omitted', () => {
+      createEntry('/path/no-date.jpg');
+      const entry = getEntryByPath('/path/no-date.jpg')!;
+      expect(typeof entry.taken_at).toBe('string');
+      expect(Number.isNaN(Date.parse(entry.taken_at as string))).toBe(false);
+    });
+  });
+
+  describe('ordering by taken_at', () => {
+    it('orders staging entries by taken_at descending (newest photo first)', () => {
+      createEntry('/path/older.jpg', '2018-01-01T00:00:00Z');
+      createEntry('/path/newer.jpg', '2022-01-01T00:00:00Z');
+
+      const staging = getStagingEntries();
+      expect(staging[0].dropbox_path).toBe('/path/newer.jpg');
+      expect(staging[1].dropbox_path).toBe('/path/older.jpg');
     });
   });
 

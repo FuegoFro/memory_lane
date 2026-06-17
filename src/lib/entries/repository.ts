@@ -10,7 +10,7 @@ export function getAllEntries(): Entry[] {
            ELSE 1                       -- Active is 1
       END,
       position ASC,
-      created_at DESC
+      taken_at DESC
   `);
   return stmt.all() as Entry[];
 }
@@ -28,7 +28,7 @@ export function getStagingEntries(): Entry[] {
   const stmt = db.prepare(`
     SELECT * FROM entries
     WHERE disabled = 0 AND position IS NULL
-    ORDER BY created_at DESC
+    ORDER BY taken_at DESC
   `);
   return stmt.all() as Entry[];
 }
@@ -52,13 +52,13 @@ export function getEntryByPath(dropboxPath: string): Entry | undefined {
   return stmt.get(dropboxPath) as Entry | undefined;
 }
 
-export function createEntry(dropboxPath: string): Entry {
+export function createEntry(dropboxPath: string, takenAt?: string): Entry {
   const id = uuidv4();
   const stmt = db.prepare(`
-    INSERT INTO entries (id, dropbox_path)
-    VALUES (?, ?)
+    INSERT INTO entries (id, dropbox_path, taken_at)
+    VALUES (?, ?, ?)
   `);
-  stmt.run(id, dropboxPath);
+  stmt.run(id, dropboxPath, takenAt ?? new Date().toISOString());
   return getEntryById(id)!;
 }
 
