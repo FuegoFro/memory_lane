@@ -23,6 +23,9 @@ const columns = db.prepare("PRAGMA table_info(entries)").all() as { name: string
 if (!columns.some(c => c.name === 'has_narration')) {
   db.exec('ALTER TABLE entries ADD COLUMN has_narration INTEGER DEFAULT 0');
 }
+if (!columns.some(c => c.name === 'taken_at')) {
+  db.exec('ALTER TABLE entries ADD COLUMN taken_at TEXT');
+}
 
 export default db;
 
@@ -36,6 +39,7 @@ export interface Entry {
   has_narration: number;
   created_at: string;
   updated_at: string;
+  taken_at: string | null;
 }
 
 export interface Setting {

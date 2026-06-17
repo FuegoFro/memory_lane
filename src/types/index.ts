@@ -8,6 +8,7 @@ export interface Entry {
   has_narration: number;
   created_at: string;
   updated_at: string;
+  taken_at: string | null;
 }
 
 export interface ViewerSettings {
