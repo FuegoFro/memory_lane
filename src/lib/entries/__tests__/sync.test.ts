@@ -21,8 +21,8 @@ describe('syncFromDropbox', () => {
 
   it('creates entries for new files from Dropbox', async () => {
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false, takenAt: null },
+      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     const result = await syncFromDropbox();
@@ -39,7 +39,7 @@ describe('syncFromDropbox', () => {
     createEntry('/existing.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/existing.jpg', name: 'existing.jpg', isVideo: false, hasNarration: false, takenAt: null },
+      { path: '/existing.jpg', name: 'existing.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     const result = await syncFromDropbox();
@@ -67,7 +67,7 @@ describe('syncFromDropbox', () => {
     createEntry('/photo.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false, takenAt: null },
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     await syncFromDropbox();
@@ -84,11 +84,11 @@ describe('syncFromDropbox', () => {
     createEntry('/removed.jpg');
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/existing1.jpg', name: 'existing1.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/existing2.jpg', name: 'existing2.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/new1.jpg', name: 'new1.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/new2.jpg', name: 'new2.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/new3.jpg', name: 'new3.jpg', isVideo: false, hasNarration: false, takenAt: null },
+      { path: '/existing1.jpg', name: 'existing1.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/existing2.jpg', name: 'existing2.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/new1.jpg', name: 'new1.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/new2.jpg', name: 'new2.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/new3.jpg', name: 'new3.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     const result = await syncFromDropbox();
@@ -118,7 +118,7 @@ describe('syncFromDropbox', () => {
 
   it('sets has_narration when creating new entry with narration', async () => {
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true, takenAt: null },
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     await syncFromDropbox();
@@ -132,7 +132,7 @@ describe('syncFromDropbox', () => {
     expect(existing.has_narration).toBe(0);
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true, takenAt: null },
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: true, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     await syncFromDropbox();
@@ -148,7 +148,7 @@ describe('syncFromDropbox', () => {
     db.prepare('UPDATE entries SET has_narration = 1 WHERE id = ?').run(existing.id);
 
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false, takenAt: null },
+      { path: '/photo.jpg', name: 'photo.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     await syncFromDropbox();
@@ -159,9 +159,9 @@ describe('syncFromDropbox', () => {
 
   it('handles empty database with files in Dropbox', async () => {
     mockListMediaFiles.mockResolvedValue([
-      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false, takenAt: null },
-      { path: '/video.mp4', name: 'video.mp4', isVideo: true, hasNarration: false, takenAt: null },
+      { path: '/photo1.jpg', name: 'photo1.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/photo2.jpg', name: 'photo2.jpg', isVideo: false, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
+      { path: '/video.mp4', name: 'video.mp4', isVideo: true, hasNarration: false, takenAt: '2020-01-01T00:00:00Z' },
     ]);
 
     const result = await syncFromDropbox();

@@ -49,6 +49,7 @@ describe('GET /api/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockGetTemporaryLink.mockResolvedValue('https://dropbox.com/temp-link-123');
@@ -73,6 +74,7 @@ describe('GET /api/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     const mockImageData = Buffer.from('fake-image-data');
@@ -101,6 +103,7 @@ describe('GET /api/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockGetTemporaryLink.mockResolvedValue('https://dropbox.com/temp-link-123');
@@ -136,6 +139,7 @@ describe('GET /api/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(disabledEntry);
 
@@ -159,6 +163,7 @@ describe('GET /api/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockGetTemporaryLink.mockRejectedValue(new Error('Dropbox API error'));

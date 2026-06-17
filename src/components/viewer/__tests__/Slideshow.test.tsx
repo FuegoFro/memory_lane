@@ -26,7 +26,7 @@ describe('Slideshow', () => {
         entries={[{
           id: 'e1', dropbox_path: '/a.jpg', title: 'A',
           transcript: null, position: 1, disabled: 0, has_narration: 0,
-          created_at: '', updated_at: '',
+          created_at: '', updated_at: '', taken_at: null,
         }]}
         initialAutoAdvance={0}
         initialShowTitles
@@ -46,7 +46,7 @@ describe('Slideshow', () => {
     const entries = [{
       id: 'e1', dropbox_path: '/a.jpg', title: 'A',
       transcript: null, position: 1, disabled: 0, has_narration: 0,
-      created_at: '', updated_at: '',
+      created_at: '', updated_at: '', taken_at: null,
     }];
     const { getByTestId } = render(
       <Slideshow
@@ -70,7 +70,7 @@ describe('Slideshow', () => {
     const entries = [{
       id: 'e1', dropbox_path: '/a.jpg', title: 'A',
       transcript: null, position: 1, disabled: 0, has_narration: 1,
-      created_at: '', updated_at: '',
+      created_at: '', updated_at: '', taken_at: null,
     }];
     const { getByTestId } = render(
       <Slideshow
@@ -92,7 +92,7 @@ describe('Slideshow', () => {
     const entries = [{
       id: 'e1', dropbox_path: '/a.mp4', title: 'A',
       transcript: null, position: 1, disabled: 0, has_narration: 0,
-      created_at: '', updated_at: '',
+      created_at: '', updated_at: '', taken_at: null,
     }];
     const { getByTestId } = render(
       <Slideshow
@@ -115,12 +115,12 @@ describe('Slideshow', () => {
       {
         id: 'e1', dropbox_path: '/a.jpg', title: 'Title A',
         transcript: null, position: 1, disabled: 0, has_narration: 0,
-        created_at: '', updated_at: '',
+        created_at: '', updated_at: '', taken_at: null,
       },
       {
         id: 'e2', dropbox_path: '/b.jpg', title: 'Title B',
         transcript: null, position: 2, disabled: 0, has_narration: 0,
-        created_at: '', updated_at: '',
+        created_at: '', updated_at: '', taken_at: null,
       }
     ];
     const { queryByText, getByRole } = render(
@@ -152,8 +152,8 @@ describe('Slideshow', () => {
 
   it('reuses the same img element when navigating to the next entry', () => {
     const entries = [
-      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
-      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '', taken_at: null },
+      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '', taken_at: null },
     ];
     const { getByRole } = render(
       <Slideshow entries={entries} initialAutoAdvance={0} initialShowTitles={false} />
@@ -174,9 +174,9 @@ describe('Slideshow', () => {
     vi.stubGlobal('Image', MockImage);
 
     const entries = [
-      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
-      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
-      { id: 'e3', dropbox_path: '/c.jpg', title: 'C', transcript: null, position: 3, disabled: 0, has_narration: 0, created_at: '', updated_at: '' },
+      { id: 'e1', dropbox_path: '/a.jpg', title: 'A', transcript: null, position: 1, disabled: 0, has_narration: 0, created_at: '', updated_at: '', taken_at: null },
+      { id: 'e2', dropbox_path: '/b.jpg', title: 'B', transcript: null, position: 2, disabled: 0, has_narration: 0, created_at: '', updated_at: '', taken_at: null },
+      { id: 'e3', dropbox_path: '/c.jpg', title: 'C', transcript: null, position: 3, disabled: 0, has_narration: 0, created_at: '', updated_at: '', taken_at: null },
     ];
     render(<Slideshow entries={entries} initialAutoAdvance={0} initialShowTitles={false} />);
 

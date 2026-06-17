@@ -40,6 +40,7 @@ describe('GET /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
 
@@ -103,6 +104,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, title: 'New Title' };
 
@@ -129,6 +131,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, transcript: 'New transcript' };
 
@@ -155,6 +158,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, position: 5, disabled: 0 };
 
@@ -182,6 +186,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, disabled: 0 };
 
@@ -208,6 +213,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, position: null };
 
@@ -233,6 +239,7 @@ describe('PUT /api/edit/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     const updatedEntry = { ...existingEntry, disabled: 1 };
 

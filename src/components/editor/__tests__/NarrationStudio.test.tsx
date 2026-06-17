@@ -24,6 +24,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     has_narration: 0,
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
+    taken_at: null,
     ...overrides,
   };
 }

@@ -52,6 +52,7 @@ describe('POST /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockUploadNarration.mockResolvedValue(undefined);
@@ -93,6 +94,7 @@ describe('POST /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
 
@@ -115,6 +117,7 @@ describe('POST /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockUploadNarration.mockRejectedValue(new Error('Dropbox API error'));
@@ -152,6 +155,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockDeleteNarration.mockResolvedValue(undefined);
@@ -177,6 +181,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockDeleteNarration.mockResolvedValue(undefined);
@@ -209,6 +214,7 @@ describe('DELETE /api/edit/narration/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
     mockDeleteNarration.mockRejectedValue(new Error('Dropbox API error'));

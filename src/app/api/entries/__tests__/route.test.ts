@@ -34,6 +34,7 @@ describe('GET /api/entries', () => {
         has_narration: 0,
         created_at: '2024-01-01 10:00:00',
         updated_at: '2024-01-01 10:00:00',
+        taken_at: null,
       },
       {
         id: 'entry-2',
@@ -45,6 +46,7 @@ describe('GET /api/entries', () => {
         has_narration: 0,
         created_at: '2024-01-01 11:00:00',
         updated_at: '2024-01-01 11:00:00',
+        taken_at: null,
       },
     ];
     mockGetActiveEntries.mockReturnValue(mockEntries);
@@ -102,6 +104,7 @@ describe('GET /api/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(mockEntry);
 
@@ -136,6 +139,7 @@ describe('GET /api/entries/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01 10:00:00',
       updated_at: '2024-01-01 10:00:00',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(disabledEntry);
 

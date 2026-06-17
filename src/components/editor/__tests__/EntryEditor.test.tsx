@@ -36,6 +36,7 @@ const createImageEntry = (): Entry => ({
   has_narration: 0,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
+  taken_at: null,
 });
 
 const renderEditor = (props: Parameters<typeof EntryEditor>[0]) => {
@@ -56,6 +57,7 @@ const createVideoEntry = (): Entry => ({
   has_narration: 0,
   created_at: '2024-01-02T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
+  taken_at: null,
 });
 
 const createDisabledEntry = (): Entry => ({
@@ -68,6 +70,7 @@ const createDisabledEntry = (): Entry => ({
   has_narration: 0,
   created_at: '2024-01-03T00:00:00Z',
   updated_at: '2024-01-03T00:00:00Z',
+  taken_at: null,
 });
 
 describe('EntryEditor', () => {

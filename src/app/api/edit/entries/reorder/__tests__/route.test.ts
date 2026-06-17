@@ -44,6 +44,7 @@ describe('PUT /api/edit/entries/reorder', () => {
         has_narration: 0,
         created_at: '2024-01-01 12:00:00',
         updated_at: '2024-01-01 12:00:00',
+        taken_at: null,
       },
       {
         id: 'entry-1',
@@ -55,6 +56,7 @@ describe('PUT /api/edit/entries/reorder', () => {
         has_narration: 0,
         created_at: '2024-01-01 10:00:00',
         updated_at: '2024-01-01 10:00:00',
+        taken_at: null,
       },
       {
         id: 'entry-2',
@@ -66,6 +68,7 @@ describe('PUT /api/edit/entries/reorder', () => {
         has_narration: 0,
         created_at: '2024-01-01 11:00:00',
         updated_at: '2024-01-01 11:00:00',
+        taken_at: null,
       },
     ];
 

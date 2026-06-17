@@ -57,6 +57,7 @@ describe('POST /api/edit/transcribe/[id]', () => {
     has_narration: 0,
     created_at: '2024-01-01 10:00:00',
     updated_at: '2024-01-01 10:00:00',
+    taken_at: null,
   };
 
   it('transcribes narration and returns transcript', async () => {

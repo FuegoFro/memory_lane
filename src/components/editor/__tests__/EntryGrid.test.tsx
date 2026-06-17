@@ -72,6 +72,7 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
     has_narration: 0,
     created_at: '2020-01-01',
     updated_at: '2020-01-01',
+    taken_at: null,
     ...overrides,
   };
 }
@@ -95,6 +96,7 @@ const createTestEntries = (): Entry[] => [
     has_narration: 0,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
+    taken_at: null,
   },
   {
     id: 'entry-2',
@@ -106,6 +108,7 @@ const createTestEntries = (): Entry[] => [
     has_narration: 0,
     created_at: '2024-01-02T00:00:00Z',
     updated_at: '2024-01-02T00:00:00Z',
+    taken_at: null,
   },
   {
     id: 'entry-3',
@@ -117,6 +120,7 @@ const createTestEntries = (): Entry[] => [
     has_narration: 0,
     created_at: '2024-01-03T00:00:00Z',
     updated_at: '2024-01-03T00:00:00Z',
+    taken_at: null,
   },
   {
     id: 'entry-4',
@@ -128,6 +132,7 @@ const createTestEntries = (): Entry[] => [
     has_narration: 0,
     created_at: '2024-01-04T00:00:00Z',
     updated_at: '2024-01-04T00:00:00Z',
+    taken_at: null,
   },
 ];
 

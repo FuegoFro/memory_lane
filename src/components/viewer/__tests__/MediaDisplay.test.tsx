@@ -16,6 +16,7 @@ const mockEntry1: Entry = {
   has_narration: 0,
   created_at: '',
   updated_at: '',
+  taken_at: null,
 };
 
 

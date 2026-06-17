@@ -12,6 +12,7 @@ describe('getEntryStatus', () => {
     has_narration: 0,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
+    taken_at: null,
   };
 
   it('returns "disabled" for disabled entries', () => {

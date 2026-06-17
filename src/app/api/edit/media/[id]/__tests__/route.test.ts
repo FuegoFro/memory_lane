@@ -40,6 +40,7 @@ describe('GET /api/edit/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(disabledEntry);
     mockGetTemporaryLink.mockResolvedValue('https://dropbox.com/temp-disabled');
@@ -63,6 +64,7 @@ describe('GET /api/edit/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(activeEntry);
     mockGetTemporaryLink.mockResolvedValue('https://dropbox.com/temp-active');
@@ -86,6 +88,7 @@ describe('GET /api/edit/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
+      taken_at: null,
     };
     mockGetEntryById.mockReturnValue(disabledEntry);
     const imgData = Buffer.from('fake-thumb');
@@ -124,6 +127,7 @@ describe('GET /api/edit/media/[id]', () => {
       has_narration: 0,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
+      taken_at: null,
     });
     mockGetTemporaryLink.mockRejectedValue(new Error('Dropbox down'));
 
