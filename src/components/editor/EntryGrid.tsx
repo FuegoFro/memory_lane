@@ -41,7 +41,7 @@ function toThumbEntry(e: Entry, density?: number): ThumbEntry {
   return {
     id: e.id,
     title: e.title ?? 'Untitled',
-    year: e.created_at ? new Date(e.created_at).getFullYear() : null,
+    year: e.taken_at ? new Date(e.taken_at).getFullYear() : null,
     kind: isVideoFile(e.dropbox_path) ? 'video' : 'photo',
     src: `/api/media/${e.id}`,
     thumbSrc: dbSize ? `/api/media/${e.id}?size=${dbSize}` : undefined,
@@ -55,7 +55,7 @@ function matchesSearch(e: Entry, q: string): boolean {
   const needle = q.toLowerCase().trim();
   if ((e.title ?? '').toLowerCase().includes(needle)) return true;
   if ((e.transcript ?? '').toLowerCase().includes(needle)) return true;
-  if (e.created_at && new Date(e.created_at).getFullYear().toString().includes(needle)) return true;
+  if (e.taken_at && new Date(e.taken_at).getFullYear().toString().includes(needle)) return true;
   return false;
 }
 

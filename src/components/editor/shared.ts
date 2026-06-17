@@ -13,7 +13,7 @@ export function toThumbEntry(entry: Entry): ThumbEntry {
   return {
     id: entry.id,
     title: entry.title ?? 'Untitled',
-    year: yearFromCreatedAt(entry.created_at),
+    year: yearFromTakenAt(entry.taken_at),
     kind: video ? 'video' : 'photo',
     src: `/api/media/${entry.id}`,
     hasNarration: !!entry.has_narration,
@@ -23,8 +23,8 @@ export function toThumbEntry(entry: Entry): ThumbEntry {
   void status;
 }
 
-function yearFromCreatedAt(createdAt: string | null): number | null {
-  if (!createdAt) return null;
-  const y = new Date(createdAt).getFullYear();
+export function yearFromTakenAt(takenAt: string | null): number | null {
+  if (!takenAt) return null;
+  const y = new Date(takenAt).getFullYear();
   return Number.isFinite(y) ? y : null;
 }

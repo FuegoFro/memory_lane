@@ -115,7 +115,7 @@ export function EntryEditor({
     };
   }, [saveNow]);
 
-  const year = entry.created_at ? new Date(entry.created_at).getFullYear() : null;
+  const year = entry.taken_at ? new Date(entry.taken_at).getFullYear() : null;
   const kindLabel = isVideo ? 'Video' : 'Photo';
 
   return (
