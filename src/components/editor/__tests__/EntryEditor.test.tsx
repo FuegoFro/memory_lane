@@ -251,12 +251,11 @@ describe('EntryEditor', () => {
       expect(transcriptTextarea).toHaveValue('This is a test transcript');
     });
 
-    it('renders transcript textarea with empty string when transcript is null', () => {
-      const entry = createVideoEntry();
+    it('hides transcript section when transcript is null even if hasNarration is true', () => {
+      const entry = createVideoEntry(); // transcript: null
       renderEditor({ entry, hasNarration: true });
 
-      const transcriptTextarea = screen.getByLabelText(/transcript/i);
-      expect(transcriptTextarea).toHaveValue('');
+      expect(screen.queryByLabelText(/transcript/i)).not.toBeInTheDocument();
     });
 
     it('allows editing the title', () => {
@@ -322,6 +321,25 @@ describe('EntryEditor', () => {
     it('renders re-record button when narration exists', () => {
       renderEditor({ entry: createImageEntry(), hasNarration: true });
       expect(screen.getByRole('button', { name: /re-record/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Transcript section visibility', () => {
+    it('shows transcript section when narration is settled and transcript is non-empty', () => {
+      const entry = { ...createImageEntry(), has_narration: 1 };
+      renderEditor({ entry, hasNarration: true });
+      expect(screen.getByLabelText(/transcript/i)).toBeInTheDocument();
+    });
+
+    it('hides transcript section when hasNarration is false', () => {
+      renderEditor({ entry: createImageEntry(), hasNarration: false });
+      expect(screen.queryByLabelText(/transcript/i)).not.toBeInTheDocument();
+    });
+
+    it('hides transcript section when narration exists but transcript text is empty', () => {
+      const entry = { ...createVideoEntry(), has_narration: 1 }; // transcript: null
+      renderEditor({ entry, hasNarration: true });
+      expect(screen.queryByLabelText(/transcript/i)).not.toBeInTheDocument();
     });
   });
 

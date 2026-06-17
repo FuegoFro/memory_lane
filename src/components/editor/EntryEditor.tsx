@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Entry, getEntryStatus, EntryStatus, isVideoFile } from '@/types';
-import { NarrationStudio, NarrationStudioChange } from './NarrationStudio';
+import { NarrationStudio, NarrationStudioChange, NarrationState } from './NarrationStudio';
 import styles from './EntryEditor.module.css';
 import { Btn } from '@/components/ui/Btn';
 import { Icon } from '@/components/ui/Icon';
@@ -33,6 +33,9 @@ export function EntryEditor({
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [hasNarration, setHasNarration] = useState<boolean>(initialHasNarration);
+  const [narrationPhase, setNarrationPhase] = useState<NarrationState>(
+    initialHasNarration ? 'hasNarration' : 'noNarration'
+  );
 
   const isVideo = isVideoFile(entry.dropbox_path);
 
@@ -256,10 +259,11 @@ export function EntryEditor({
           entry={narrationEntry}
           hasNarration={hasNarration}
           onChange={handleNarrationChange}
+          onNarrationStateChange={setNarrationPhase}
         />
 
         {/* Transcript Textarea */}
-        {hasNarration && (
+        {narrationPhase === 'hasNarration' && transcript && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Transcript
