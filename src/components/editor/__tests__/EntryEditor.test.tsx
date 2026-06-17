@@ -325,7 +325,7 @@ describe('EntryEditor', () => {
   });
 
   describe('Transcript section visibility', () => {
-    it('shows transcript section when narration is settled and transcript is non-empty', () => {
+    it('shows transcript section when narrationPhase is hasNarration and transcript is non-empty', () => {
       const entry = { ...createImageEntry(), has_narration: 1 };
       renderEditor({ entry, hasNarration: true });
       expect(screen.getByLabelText(/transcript/i)).toBeInTheDocument();
@@ -910,6 +910,37 @@ describe('EntryEditor', () => {
       // Audio player should be visible again after upload
       await waitFor(() => {
         expect(document.querySelector('audio')).toBeInTheDocument();
+      });
+    });
+
+    it('shows transcript section after a successful recording and transcription', async () => {
+      const entry = { ...createImageEntry(), has_narration: 0, transcript: null };
+      mockFetch
+        .mockResolvedValueOnce({ ok: true }) // upload narration
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ transcript: 'Hello world' }) }); // transcription
+
+      renderEditor({ entry, hasNarration: false });
+
+      // Transcript section should NOT be visible initially
+      expect(screen.queryByLabelText(/transcript/i)).not.toBeInTheDocument();
+
+      // Start recording
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+        await Promise.resolve();
+      });
+
+      // Stop recording (triggers upload + transcription)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // After transcription completes, transcript section appears with the transcribed text
+      await waitFor(() => {
+        expect(screen.getByLabelText(/transcript/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transcript/i)).toHaveValue('Hello world');
       });
     });
   });

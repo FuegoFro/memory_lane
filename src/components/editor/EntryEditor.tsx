@@ -32,7 +32,9 @@ export function EntryEditor({
   const [transcript, setTranscript] = useState(entry.transcript || '');
   const [status, setStatus] = useState<EntryStatus>(getEntryStatus(entry));
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  // hasNarration: persisted truth — audio file exists on disk
   const [hasNarration, setHasNarration] = useState<boolean>(initialHasNarration);
+  // narrationPhase: live UI phase from NarrationStudio's state machine — used to gate transcript visibility
   const [narrationPhase, setNarrationPhase] = useState<NarrationState>(
     initialHasNarration ? 'hasNarration' : 'noNarration'
   );
